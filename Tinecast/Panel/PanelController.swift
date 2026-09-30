@@ -12,6 +12,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         let hostingView = NSHostingView(rootView: LauncherView(
             model: model,
             run: { [weak self] item in self?.run(item) },
+            reveal: { [weak self] item in self?.reveal(item) },
             cancel: { [weak self] in self?.close() },
             resize: { [weak self] size in self?.resize(to: size) }
         ))
@@ -56,6 +57,14 @@ final class PanelController: NSObject, NSWindowDelegate {
         switch item.action {
         case .open(let url):
             NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func reveal(_ item: Item) {
+        dismiss()
+        switch item.action {
+        case .open(let url):
+            NSWorkspace.shared.activateFileViewerSelecting([url])
         }
     }
 

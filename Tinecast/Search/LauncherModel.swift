@@ -4,14 +4,25 @@ import TinecastKit
 @Observable
 final class LauncherModel {
     var query = "" {
-        didSet { updateResults() }
+        didSet {
+            appResults = rank(items, query: query)
+            filesProvider.search(query)
+            selectedIndex = 0
+        }
     }
     var items: [Item] = [] {
-        didSet { updateResults() }
+        didSet { appResults = rank(items, query: query) }
     }
     var isPresented = false
     private(set) var results: [Item] = []
     private(set) var selectedIndex = 0
+    private var appResults: [Item] = [] {
+        didSet { updateResults() }
+    }
+    private var fileResults: [Item] = [] {
+        didSet { updateResults() }
+    }
+    @ObservationIgnored private lazy var filesProvider = FilesProvider { [weak self] items in self?.fileResults = items }
 
     var selectedItem: Item? {
         results.indices.contains(selectedIndex) ? results[selectedIndex] : nil
@@ -23,7 +34,8 @@ final class LauncherModel {
     }
 
     private func updateResults() {
-        results = rank(items, query: query)
-        selectedIndex = 0
+        let selectedID = selectedItem?.id
+        results = appResults + fileResults
+        selectedIndex = results.firstIndex { $0.id == selectedID } ?? min(selectedIndex, max(results.count - 1, 0))
     }
 }

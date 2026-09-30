@@ -4,6 +4,7 @@ import TinecastKit
 struct LauncherView: View {
     @Bindable var model: LauncherModel
     let run: (Item) -> Void
+    let reveal: (Item) -> Void
     let cancel: () -> Void
     let resize: (CGSize) -> Void
 
@@ -22,6 +23,12 @@ struct LauncherView: View {
                     .onSubmit {
                         guard let item = model.selectedItem else { return }
                         run(item)
+                    }
+                    .onKeyPress(.return, phases: .down) { press in
+                        guard press.modifiers.contains(.command) else { return .ignored }
+                        guard let item = model.selectedItem else { return .handled }
+                        reveal(item)
+                        return .handled
                     }
                     .onKeyPress(.upArrow) {
                         model.moveSelection(by: -1)

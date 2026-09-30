@@ -12,8 +12,17 @@ struct ResultRow: View {
                 .scaledToFit()
                 .frame(width: 28, height: 28)
                 .accessibilityHidden(true)
-            Text(item.title)
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(item.title)
+                    .lineLimit(1)
+                if let subtitle = item.subtitle {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 10)
