@@ -1,0 +1,36 @@
+name: Tinecast
+options:
+  deploymentTarget:
+    macOS: "26.0"
+packages:
+  TinecastKit:
+    path: Packages/TinecastKit
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    SWIFT_APPROACHABLE_CONCURRENCY: YES
+    DEVELOPMENT_TEAM: 82K3YC8HVF
+targets:
+  tinecast:
+    type: application
+    platform: macOS
+    sources:
+      - path: Tinecast
+        type: syncedFolder
+    dependencies:
+      - package: TinecastKit
+    scheme: {}
+    settings:
+      base:
+        PRODUCT_NAME: tinecast
+        PRODUCT_BUNDLE_IDENTIFIER: dev.gustaf.tinecast
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: Apple Development
