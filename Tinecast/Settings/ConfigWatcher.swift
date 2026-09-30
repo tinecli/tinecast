@@ -1,4 +1,5 @@
 import Foundation
+import os
 import TinecastKit
 
 final class ConfigWatcher {
@@ -17,7 +18,11 @@ final class ConfigWatcher {
         if !FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            try? encoder.encode(Config()).write(to: url, options: .atomic)
+            do {
+                try encoder.encode(Config()).write(to: url, options: .atomic)
+            } catch {
+                Logger(subsystem: "dev.gustaf.tinecast", category: "settings").error("Default settings couldn't be written: \(error.localizedDescription, privacy: .public)")
+            }
         }
         // Atomic saves replace the file and only show up on the folder; in-place saves only show up on the file.
         directorySource = source(watching: url.deletingLastPathComponent(), events: .write)

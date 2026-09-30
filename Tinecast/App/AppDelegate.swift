@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let panel = PanelController(folder: AppDelegate.folder, settingsURL: AppDelegate.settingsURL)
     private var appsProvider: AppsProvider?
     private var hotKey: HotKey?
+    private var hotKeyCombination: KeyCombination?
     private var configWatcher: ConfigWatcher?
     private var config: Config?
 
@@ -22,21 +23,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.alert("settings.json has a problem", "\(problem)\n\ntinecast keeps its current settings until the file is fixed.")
             }
         )
-        if config == nil { apply(Config()) }
+        if config == nil { register(Config().hotkey) }
     }
 
     private func apply(_ new: Config) {
         let old = config
         config = new
         panel.model.config = new
-        if new.hotkey != old?.hotkey || hotKey == nil { register(new.hotkey) }
+        register(new.hotkey)
         if new.launchAtLogin != old?.launchAtLogin { setLaunchAtLogin(new.launchAtLogin) }
     }
 
     private func register(_ combination: KeyCombination) {
+        let isNewCombination = combination != hotKeyCombination
+        guard isNewCombination || hotKey == nil else { return }
+        hotKeyCombination = combination
         hotKey = nil
         hotKey = HotKey(keyCode: combination.keyCode, modifiers: combination.carbonModifiers) { [panel] in panel.toggle() }
-        guard hotKey == nil else { return }
+        guard hotKey == nil, isNewCombination else { return }
         alert(
             "\(combination.displayName) is already in use",
             "tinecast opens with \(combination.displayName), but another app or a system shortcut already uses it. Free it in System Settings > Keyboard > Keyboard Shortcuts (Spotlight and Input Sources use Command-Space and Control-Space), or choose another hotkey in settings.json."

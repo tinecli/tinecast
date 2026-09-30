@@ -8,11 +8,8 @@ final class LauncherModel {
 
     var query = "" {
         didSet {
-            appResults = rank(items, query: query, frecency: frecency)
-            let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-            fileResults = fileResults.filter { $0.title.localizedStandardContains(trimmed) }
-            filesProvider.search(query)
-            selectedIndex = 0
+            guard query != oldValue else { return }
+            search()
         }
     }
     var items: [Item] = [] {
@@ -20,8 +17,10 @@ final class LauncherModel {
     }
     var config = Config() {
         didSet {
-            history.ignorePattern = config.historyIgnore
-            filesProvider.fileSearch = config.fileSearch
+            if config.fileSearch != oldValue.fileSearch {
+                filesProvider.fileSearch = config.fileSearch
+                filesProvider.search(query)
+            }
             updateResults()
         }
     }
@@ -44,6 +43,10 @@ final class LauncherModel {
 
     var selectedItem: Item? {
         results.indices.contains(selectedIndex) ? results[selectedIndex] : nil
+    }
+
+    var showsNoResults: Bool {
+        results.isEmpty && !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     func edit(_ text: String) {
@@ -71,6 +74,7 @@ final class LauncherModel {
     }
 
     func record(_ item: Item) {
+        guard !config.historyIgnores(query) else { return }
         history.record(query)
         frecency.record(query: query, itemID: item.id, at: .now)
     }
@@ -86,6 +90,14 @@ final class LauncherModel {
     func dismiss() {
         isPresented = false
         closedAt = .now
+    }
+
+    private func search() {
+        appResults = rank(items, query: query, frecency: frecency)
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        fileResults = fileResults.filter { $0.title.localizedStandardContains(trimmed) }
+        filesProvider.search(query)
+        selectedIndex = 0
     }
 
     private var suggestions: [Item] {

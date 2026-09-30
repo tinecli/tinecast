@@ -28,26 +28,10 @@ import TinecastKit
     #expect(history.entries.last == "q502")
 }
 
-@Test func ignorePatternSkipsWholeMatchesOnly() {
-    var history = History(ignorePattern: "pass.*")
-    for query in ["password hunter2", "passwd", "my password", "safari"] { history.record(query) }
-
-    #expect(history.entries == ["my password", "safari"])
-}
-
-@Test func invalidIgnorePatternIgnoresNothing() {
-    var history = History(ignorePattern: "(unclosed")
-    history.record("(unclosed")
-    history.record("safari")
-
-    #expect(history.entries == ["(unclosed", "safari"])
-}
-
-@Test func encodesEntriesButNotTheIgnorePattern() throws {
-    var history = History(ignorePattern: "secret")
+@Test func historyRoundTripsThroughCodable() throws {
+    var history = History()
     history.record("safari")
 
     let decoded = try JSONDecoder().decode(History.self, from: JSONEncoder().encode(history))
-    #expect(decoded.entries == ["safari"])
-    #expect(decoded.ignorePattern == nil)
+    #expect(decoded == history)
 }

@@ -51,11 +51,14 @@ private func history(_ queries: String...) -> History {
     #expect(navigator.older(typed: "ignored", in: history) == "git status")
 }
 
-@Test func noMatchStillActivates() {
+@Test func noMatchStaysInactive() {
+    let history = history("safari")
     var navigator = HistoryNavigator()
 
-    #expect(navigator.older(typed: "zzz", in: history("safari")) == nil)
-    #expect(navigator.isActive)
+    #expect(navigator.older(typed: "zzz", in: history) == nil)
+    #expect(!navigator.isActive)
+    #expect(navigator.newer(in: history) == nil)
+    #expect(navigator.older(typed: "saf", in: history) == "safari")
 }
 
 @Test func newerWhileInactiveReturnsNil() {

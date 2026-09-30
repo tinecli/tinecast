@@ -12,8 +12,7 @@ final class LauncherPanel: NSPanel {
         animationBehavior = .none
         isOpaque = false
         backgroundColor = .clear
-        hasShadow = true
-        alphaValue = 0
+        hasShadow = false
     }
 
     override var canBecomeKey: Bool { true }

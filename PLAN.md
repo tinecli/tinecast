@@ -32,7 +32,7 @@ open a URL, run a process, run AppleScript, call a system API.
 
 ## v0: the smallest thing worth using daily
 
-- Hotkey (⌘Space, first launch explains unbinding Spotlight's), glass panel on the active screen, Esc and
+- Hotkey (default ⌃Space, configurable; an alert if it can't be registered), glass panel on the active screen, Esc and
   click-away close it, launch at login.
 - No menu bar item and no Dock icon. The panel has a menu button (settings, quit), ⌘, opens settings and
   ⌘Q quits while the panel is showing.

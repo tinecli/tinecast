@@ -5,29 +5,29 @@ import TinecastKit
 final class PanelController: NSObject, NSWindowDelegate {
     let model = LauncherModel()
     private let panel = LauncherPanel()
-    private let historyURL: URL
-    private let frecencyURL: URL
+    private let historyFile: JSONFile<History>
+    private let frecencyFile: JSONFile<Frecency>
     private let settingsURL: URL
     private var previousApp: NSRunningApplication?
 
     init(folder: URL, settingsURL: URL) {
-        historyURL = folder.appending(path: "history.json")
-        frecencyURL = folder.appending(path: "ranking.json")
+        historyFile = JSONFile(url: folder.appending(path: "history.json"))
+        frecencyFile = JSONFile(url: folder.appending(path: "ranking.json"))
         self.settingsURL = settingsURL
         super.init()
-        model.history = (try? JSONDecoder().decode(History.self, from: Data(contentsOf: historyURL))) ?? History()
-        model.frecency = (try? JSONDecoder().decode(Frecency.self, from: Data(contentsOf: frecencyURL))) ?? Frecency()
+        model.history = historyFile.load() ?? History()
+        model.frecency = frecencyFile.load() ?? Frecency()
 
         let hostingView = NSHostingView(rootView: LauncherView(
             model: model,
             run: { [weak self] item in self?.run(item) },
             cancel: { [weak self] in self?.close() },
             openSettings: { [weak self] in self?.openSettings() },
-            quit: { NSApp.terminate(nil) },
-            resize: { [weak self] size in self?.resize(to: size) }
+            quit: { NSApp.terminate(nil) }
         ))
         hostingView.sizingOptions = []
         panel.contentView = hostingView
+        panel.setContentSize(LauncherView.windowSize)
         panel.delegate = self
         panel.commandShortcuts = [
             ",": { [weak self] in self?.openSettings() },
@@ -53,13 +53,9 @@ final class PanelController: NSObject, NSWindowDelegate {
         guard let visible = (NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main)?.visibleFrame else { return }
 
         previousApp = NSWorkspace.shared.frontmostApplication
-        panel.setFrameTopLeftPoint(NSPoint(x: visible.midX - panel.frame.width / 2, y: visible.maxY - visible.height / 5))
-        model.present()
+        panel.setFrameTopLeftPoint(NSPoint(x: visible.midX - panel.frame.width / 2, y: visible.maxY - visible.height / 5 + LauncherView.margin))
         panel.makeKeyAndOrderFront(nil)
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.15
-            panel.animator().alphaValue = 1
-        }
+        withAnimation(.launcher) { model.present() }
     }
 
     private func close() {
@@ -73,52 +69,45 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     private func run(_ item: Item) {
-        remember(item)
-        dismiss()
-        switch item.action {
-        case .open(let url):
-            NSWorkspace.shared.open(url)
+        perform(item) { action in
+            switch action {
+            case .open(let url):
+                NSWorkspace.shared.open(url)
+            }
         }
     }
 
     private func revealSelection() {
         guard let item = model.selectedItem else { return }
+        perform(item) { action in
+            switch action {
+            case .open(let url):
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            }
+        }
+    }
+
+    private func perform(_ item: Item, _ body: (TinecastKit.Action) -> Void) {
         remember(item)
         dismiss()
-        switch item.action {
-        case .open(let url):
-            NSWorkspace.shared.activateFileViewerSelecting([url])
-        }
+        body(item.action)
     }
 
     private func remember(_ item: Item) {
         let history = model.history
+        let frecency = model.frecency
         model.record(item)
-        if model.history != history {
-            try? JSONEncoder().encode(model.history).write(to: historyURL, options: .atomic)
-        }
-        try? JSONEncoder().encode(model.frecency).write(to: frecencyURL, options: .atomic)
+        if model.history != history { historyFile.save(model.history) }
+        if model.frecency != frecency { frecencyFile.save(model.frecency) }
     }
 
     private func dismiss() {
         guard model.isPresented else { return }
-        model.dismiss()
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.1
-            panel.animator().alphaValue = 0
-        } completionHandler: { [weak self] in
-            MainActor.assumeIsolated { self?.finishDismiss() }
+        withAnimation(.launcher) {
+            model.dismiss()
+        } completion: { [weak self] in
+            guard let self, !model.isPresented else { return }
+            panel.orderOut(nil)
         }
-    }
-
-    private func finishDismiss() {
-        guard !model.isPresented else { return }
-        panel.orderOut(nil)
-    }
-
-    private func resize(to size: CGSize) {
-        let frame = panel.frame
-        panel.setFrame(NSRect(x: frame.midX - size.width / 2, y: frame.maxY - size.height, width: size.width, height: size.height), display: true)
-        panel.invalidateShadow()
     }
 }

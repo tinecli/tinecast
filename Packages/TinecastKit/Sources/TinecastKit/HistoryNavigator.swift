@@ -1,46 +1,41 @@
 import Foundation
 
 public struct HistoryNavigator: Sendable {
-    public private(set) var isActive = false
     private var typed = ""
-    private var prefix = ""
-    private var position = 0
+    private var position: Int?
+
+    public var isActive: Bool { position != nil }
 
     public init() {}
 
     public mutating func older(typed: String, in history: History) -> String? {
         let entries = history.entries
-        if !isActive {
-            self.typed = typed
-            prefix = typed.localizedLowercase
-            position = entries.count
-            isActive = true
-        }
-        let end = min(position, entries.count)
-        let shown = end < entries.count ? entries[end] : typed
+        let anchor = isActive ? self.typed : typed
+        let end = min(position ?? entries.count, entries.count)
+        let shown = end < entries.count ? entries[end] : anchor
+        let prefix = anchor.localizedLowercase
         guard let index = entries[..<end].lastIndex(where: { $0 != shown && $0.localizedLowercase.hasPrefix(prefix) }) else { return nil }
+        self.typed = anchor
         position = index
         return entries[index]
     }
 
     public mutating func newer(in history: History) -> String? {
-        guard isActive else { return nil }
+        guard let position else { return nil }
         let entries = history.entries
         let current = min(position, entries.count)
         let shown = current < entries.count ? entries[current] : typed
+        let prefix = typed.localizedLowercase
         let later = entries[min(current + 1, entries.count)...]
         guard let index = later.firstIndex(where: { $0 != shown && $0.localizedLowercase.hasPrefix(prefix) }) else {
-            position = entries.count
+            self.position = entries.count
             return typed
         }
-        position = index
+        self.position = index
         return entries[index]
     }
 
     public mutating func reset() {
-        isActive = false
-        typed = ""
-        prefix = ""
-        position = 0
+        self = HistoryNavigator()
     }
 }

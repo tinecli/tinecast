@@ -59,3 +59,20 @@ private func problem(_ json: String) -> String? {
     #expect(problem(#"{ "compact" true }"#)?.contains("line 1") == true)
     #expect(problem("") != nil)
 }
+
+@Test func historyIgnoreMatchesWholeTrimmedQueriesOnly() throws {
+    let ignoring = try config(#"{ "historyIgnore": "pass.*" }"#)
+
+    #expect(ignoring.historyIgnores("password hunter2"))
+    #expect(ignoring.historyIgnores(" passwd "))
+    #expect(!ignoring.historyIgnores("my password"))
+    #expect(!ignoring.historyIgnores("safari"))
+    #expect(!Config().historyIgnores("password"))
+}
+
+@Test func invalidHistoryIgnoreIgnoresNothing() {
+    var unchecked = Config()
+    unchecked.historyIgnore = "(unclosed"
+
+    #expect(!unchecked.historyIgnores("(unclosed"))
+}

@@ -52,6 +52,11 @@ public struct Config: Codable, Equatable, Sendable {
         try container.encode(historyIgnore, forKey: .historyIgnore)
     }
 
+    public func historyIgnores(_ query: String) -> Bool {
+        guard let historyIgnore, let regex = try? Regex(historyIgnore) else { return false }
+        return query.trimmingCharacters(in: .whitespacesAndNewlines).wholeMatch(of: regex) != nil
+    }
+
     public init(json data: Data) throws(ConfigError) {
         do {
             self = try JSONDecoder().decode(Config.self, from: data)
