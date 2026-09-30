@@ -5,20 +5,35 @@ import TinecastKit
 final class PanelController: NSObject, NSWindowDelegate {
     let model = LauncherModel()
     private let panel = LauncherPanel()
+    private let historyURL: URL
+    private let frecencyURL: URL
+    private let settingsURL: URL
     private var previousApp: NSRunningApplication?
 
-    override init() {
+    init(folder: URL, settingsURL: URL) {
+        historyURL = folder.appending(path: "history.json")
+        frecencyURL = folder.appending(path: "ranking.json")
+        self.settingsURL = settingsURL
         super.init()
+        model.history = (try? JSONDecoder().decode(History.self, from: Data(contentsOf: historyURL))) ?? History()
+        model.frecency = (try? JSONDecoder().decode(Frecency.self, from: Data(contentsOf: frecencyURL))) ?? Frecency()
+
         let hostingView = NSHostingView(rootView: LauncherView(
             model: model,
             run: { [weak self] item in self?.run(item) },
-            reveal: { [weak self] item in self?.reveal(item) },
             cancel: { [weak self] in self?.close() },
+            openSettings: { [weak self] in self?.openSettings() },
+            quit: { NSApp.terminate(nil) },
             resize: { [weak self] size in self?.resize(to: size) }
         ))
         hostingView.sizingOptions = []
         panel.contentView = hostingView
         panel.delegate = self
+        panel.commandShortcuts = [
+            ",": { [weak self] in self?.openSettings() },
+            "q": { NSApp.terminate(nil) },
+            "\r": { [weak self] in self?.revealSelection() },
+        ]
     }
 
     func toggle() {
@@ -39,7 +54,7 @@ final class PanelController: NSObject, NSWindowDelegate {
 
         previousApp = NSWorkspace.shared.frontmostApplication
         panel.setFrameTopLeftPoint(NSPoint(x: visible.midX - panel.frame.width / 2, y: visible.maxY - visible.height / 5))
-        model.isPresented = true
+        model.present()
         panel.makeKeyAndOrderFront(nil)
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.15
@@ -52,7 +67,13 @@ final class PanelController: NSObject, NSWindowDelegate {
         previousApp?.activate()
     }
 
+    private func openSettings() {
+        dismiss()
+        NSWorkspace.shared.open(settingsURL)
+    }
+
     private func run(_ item: Item) {
+        remember(item)
         dismiss()
         switch item.action {
         case .open(let url):
@@ -60,7 +81,9 @@ final class PanelController: NSObject, NSWindowDelegate {
         }
     }
 
-    private func reveal(_ item: Item) {
+    private func revealSelection() {
+        guard let item = model.selectedItem else { return }
+        remember(item)
         dismiss()
         switch item.action {
         case .open(let url):
@@ -68,9 +91,18 @@ final class PanelController: NSObject, NSWindowDelegate {
         }
     }
 
+    private func remember(_ item: Item) {
+        let history = model.history
+        model.record(item)
+        if model.history != history {
+            try? JSONEncoder().encode(model.history).write(to: historyURL, options: .atomic)
+        }
+        try? JSONEncoder().encode(model.frecency).write(to: frecencyURL, options: .atomic)
+    }
+
     private func dismiss() {
         guard model.isPresented else { return }
-        model.isPresented = false
+        model.dismiss()
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.1
             panel.animator().alphaValue = 0
@@ -82,7 +114,6 @@ final class PanelController: NSObject, NSWindowDelegate {
     private func finishDismiss() {
         guard !model.isPresented else { return }
         panel.orderOut(nil)
-        model.query = ""
     }
 
     private func resize(to size: CGSize) {

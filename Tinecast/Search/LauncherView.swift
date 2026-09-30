@@ -2,10 +2,11 @@ import SwiftUI
 import TinecastKit
 
 struct LauncherView: View {
-    @Bindable var model: LauncherModel
+    let model: LauncherModel
     let run: (Item) -> Void
-    let reveal: (Item) -> Void
     let cancel: () -> Void
+    let openSettings: () -> Void
+    let quit: () -> Void
     let resize: (CGSize) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -17,28 +18,38 @@ struct LauncherView: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
-                TextField("Search", text: $model.query)
+                TextField("Search", text: Binding(get: { model.query }, set: { model.edit($0) }))
                     .textFieldStyle(.plain)
+                    .accessibilityLabel("Search")
                     .focused($isSearchFocused)
                     .onSubmit {
                         guard let item = model.selectedItem else { return }
                         run(item)
                     }
-                    .onKeyPress(.return, phases: .down) { press in
-                        guard press.modifiers.contains(.command) else { return .ignored }
-                        guard let item = model.selectedItem else { return .handled }
-                        reveal(item)
-                        return .handled
-                    }
                     .onKeyPress(.upArrow) {
-                        model.moveSelection(by: -1)
+                        model.moveUp()
                         return .handled
                     }
                     .onKeyPress(.downArrow) {
-                        model.moveSelection(by: 1)
+                        model.moveDown()
                         return .handled
                     }
                     .onExitCommand(perform: cancel)
+                Menu {
+                    Button("Settings…", action: openSettings)
+                        .keyboardShortcut(",")
+                    Divider()
+                    Button("Quit tinecast", action: quit)
+                        .keyboardShortcut("q")
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .menuStyle(.button)
+                .buttonStyle(.borderless)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .foregroundStyle(.secondary)
+                .accessibilityLabel("More")
             }
             .font(.title2)
             .padding(.horizontal, 20)

@@ -5,9 +5,9 @@ final class FilesProvider: NSObject {
     private static let minimumQueryLength = 3
     private static let maximumResults = 5
 
+    var fileSearch = Config.FileSearch()
     private var query: NSMetadataQuery?
     private let onUpdate: ([Item]) -> Void
-    private let libraryPrefix = FileManager.default.homeDirectoryForCurrentUser.appending(path: "Library", directoryHint: .isDirectory).path(percentEncoded: false)
 
     init(onUpdate: @escaping ([Item]) -> Void) {
         self.onUpdate = onUpdate
@@ -31,7 +31,7 @@ final class FilesProvider: NSObject {
             NSMetadataItemDisplayNameKey, trimmed,
             NSMetadataItemContentTypeKey, "com.apple.application-bundle"
         )
-        query.searchScopes = [NSMetadataQueryUserHomeScope]
+        query.searchScopes = fileSearch.folders.map { NSString(string: $0).standardizingPath }
         query.sortDescriptors = [
             NSSortDescriptor(key: NSMetadataItemLastUsedDateKey, ascending: false),
             NSSortDescriptor(key: NSMetadataItemDisplayNameKey, ascending: true),
@@ -46,11 +46,12 @@ final class FilesProvider: NSObject {
         guard let query else { return }
         query.disableUpdates()
         defer { query.enableUpdates() }
+        let exclusions = fileSearch.exclusions.map { NSString(string: $0).standardizingPath }
         let items = (0..<query.resultCount).lazy.compactMap { index -> Item? in
             guard let item = query.result(at: index) as? NSMetadataItem,
                   let path = item.value(forAttribute: NSMetadataItemPathKey) as? String,
                   let name = item.value(forAttribute: NSMetadataItemDisplayNameKey) as? String,
-                  !path.hasPrefix(self.libraryPrefix)
+                  !exclusions.contains(where: { path == $0 || path.hasPrefix($0 + "/") })
             else { return nil }
             let url = URL(filePath: path)
             let folder = ((path as NSString).deletingLastPathComponent as NSString).abbreviatingWithTildeInPath

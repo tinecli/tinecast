@@ -17,11 +17,14 @@ struct ResultsList: View {
                         ResultRow(item: item, isSelected: item.id == model.selectedItem?.id)
                             .frame(height: Self.rowHeight)
                             .onTapGesture { run(item) }
+                            .accessibilityAction { run(item) }
                     }
                 }
                 .padding(Self.inset)
             }
             .frame(height: CGFloat(min(model.results.count, Self.visibleRows)) * Self.rowHeight + Self.inset * 2)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(model.query.isEmpty ? "Suggestions" : "Results")
             .onChange(of: model.selectedItem?.id) { _, id in
                 guard let id else { return }
                 proxy.scrollTo(id)

@@ -1,20 +1,70 @@
 import AppKit
-import Carbon.HIToolbox
+import ServiceManagement
+import TinecastKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let panel = PanelController()
+    private static let folder = URL.applicationSupportDirectory.appending(path: "dev.gustaf.tinecast", directoryHint: .isDirectory)
+    private static let settingsURL = folder.appending(path: "settings.json")
+
+    private let panel = PanelController(folder: AppDelegate.folder, settingsURL: AppDelegate.settingsURL)
     private var appsProvider: AppsProvider?
     private var hotKey: HotKey?
+    private var configWatcher: ConfigWatcher?
+    private var config: Config?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        try? FileManager.default.createDirectory(at: Self.folder, withIntermediateDirectories: true)
         appsProvider = AppsProvider { [panel] items in panel.model.items = items }
-        hotKey = HotKey(keyCode: kVK_Space, modifiers: controlKey) { [panel] in panel.toggle() }
-        guard hotKey == nil else { return }
+        configWatcher = ConfigWatcher(
+            url: Self.settingsURL,
+            onReload: { [weak self] config in self?.apply(config) },
+            onInvalid: { [weak self] problem in
+                self?.alert("settings.json has a problem", "\(problem)\n\ntinecast keeps its current settings until the file is fixed.")
+            }
+        )
+        if config == nil { apply(Config()) }
+    }
 
+    private func apply(_ new: Config) {
+        let old = config
+        config = new
+        panel.model.config = new
+        if new.hotkey != old?.hotkey || hotKey == nil { register(new.hotkey) }
+        if new.launchAtLogin != old?.launchAtLogin { setLaunchAtLogin(new.launchAtLogin) }
+    }
+
+    private func register(_ combination: KeyCombination) {
+        hotKey = nil
+        hotKey = HotKey(keyCode: combination.keyCode, modifiers: combination.carbonModifiers) { [panel] in panel.toggle() }
+        guard hotKey == nil else { return }
+        alert(
+            "\(combination.displayName) is already in use",
+            "tinecast opens with \(combination.displayName), but another app or a system shortcut already uses it. Free it in System Settings > Keyboard > Keyboard Shortcuts (Spotlight and Input Sources use Command-Space and Control-Space), or choose another hotkey in settings.json."
+        )
+    }
+
+    private func setLaunchAtLogin(_ enabled: Bool) {
+        let service = SMAppService.mainApp
+        let isRegistered = service.status == .enabled || service.status == .requiresApproval
+        guard enabled != isRegistered else { return }
+        do {
+            if enabled {
+                try service.register()
+            } else {
+                try service.unregister()
+            }
+        } catch {
+            alert("Launch at login couldn't be changed", error.localizedDescription)
+        }
+    }
+
+    private func alert(_ message: String, _ information: String) {
+        let previousApp = NSWorkspace.shared.frontmostApplication
         let alert = NSAlert()
-        alert.messageText = "Control-Space is already in use"
-        alert.informativeText = "tinecast opens with Control-Space, but another app or a system shortcut already uses it. Free it in System Settings > Keyboard > Keyboard Shortcuts (for example under Input Sources), then open tinecast again."
+        alert.messageText = message
+        alert.informativeText = information
         NSApp.activate()
         alert.runModal()
+        previousApp?.activate()
     }
 }

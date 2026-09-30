@@ -25,6 +25,7 @@ final class AppsProvider: NSObject {
                   let name = item.value(forAttribute: NSMetadataItemDisplayNameKey) as? String
             else { return nil }
             let url = URL(filePath: path)
+            guard !url.deletingLastPathComponent().pathComponents.contains(where: { $0.hasSuffix(".app") }) else { return nil }
             let title = name.hasSuffix(".app") ? String(name.dropLast(4)) : name
             return Item(id: path, title: title, icon: .file(url), action: .open(url))
         }

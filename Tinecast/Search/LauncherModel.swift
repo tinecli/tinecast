@@ -1,19 +1,35 @@
+import Foundation
 import Observation
 import TinecastKit
 
 @Observable
 final class LauncherModel {
+    private static let suggestionLimit = 8
+
     var query = "" {
         didSet {
-            appResults = rank(items, query: query)
+            appResults = rank(items, query: query, frecency: frecency)
+            let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+            fileResults = fileResults.filter { $0.title.localizedStandardContains(trimmed) }
             filesProvider.search(query)
             selectedIndex = 0
         }
     }
     var items: [Item] = [] {
-        didSet { appResults = rank(items, query: query) }
+        didSet { appResults = rank(items, query: query, frecency: frecency) }
     }
-    var isPresented = false
+    var config = Config() {
+        didSet {
+            history.ignorePattern = config.historyIgnore
+            filesProvider.fileSearch = config.fileSearch
+            updateResults()
+        }
+    }
+    @ObservationIgnored var history = History()
+    @ObservationIgnored var frecency = Frecency() {
+        didSet { appResults = rank(items, query: query, frecency: frecency) }
+    }
+    private(set) var isPresented = false
     private(set) var results: [Item] = []
     private(set) var selectedIndex = 0
     private var appResults: [Item] = [] {
@@ -22,20 +38,71 @@ final class LauncherModel {
     private var fileResults: [Item] = [] {
         didSet { updateResults() }
     }
+    @ObservationIgnored private var navigator = HistoryNavigator()
+    @ObservationIgnored private var closedAt: Date?
     @ObservationIgnored private lazy var filesProvider = FilesProvider { [weak self] items in self?.fileResults = items }
 
     var selectedItem: Item? {
         results.indices.contains(selectedIndex) ? results[selectedIndex] : nil
     }
 
-    func moveSelection(by offset: Int) {
-        guard !results.isEmpty else { return }
-        selectedIndex = min(max(selectedIndex + offset, 0), results.count - 1)
+    func edit(_ text: String) {
+        guard text != query else { return }
+        navigator.reset()
+        query = text
+    }
+
+    func moveUp() {
+        guard navigator.isActive || selectedIndex == 0 else {
+            selectedIndex -= 1
+            return
+        }
+        guard let recalled = navigator.older(typed: query, in: history) else { return }
+        query = recalled
+    }
+
+    func moveDown() {
+        guard navigator.isActive else {
+            selectedIndex = min(selectedIndex + 1, max(results.count - 1, 0))
+            return
+        }
+        guard let recalled = navigator.newer(in: history) else { return }
+        query = recalled
+    }
+
+    func record(_ item: Item) {
+        history.record(query)
+        frecency.record(query: query, itemID: item.id, at: .now)
+    }
+
+    func present() {
+        if let closedAt, Date.now.timeIntervalSince(closedAt) > config.reopenTimeout {
+            query = ""
+        }
+        navigator.reset()
+        isPresented = true
+    }
+
+    func dismiss() {
+        isPresented = false
+        closedAt = .now
+    }
+
+    private var suggestions: [Item] {
+        let apps = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return frecency.suggestions(limit: Self.suggestionLimit, now: .now).compactMap { id in
+            if let app = apps[id] { return app }
+            guard FileManager.default.fileExists(atPath: id) else { return nil }
+            let url = URL(filePath: id)
+            let folder = ((id as NSString).deletingLastPathComponent as NSString).abbreviatingWithTildeInPath
+            return Item(id: id, title: FileManager.default.displayName(atPath: id), subtitle: folder, icon: .file(url), action: .open(url))
+        }
     }
 
     private func updateResults() {
         let selectedID = selectedItem?.id
-        results = appResults + fileResults
+        let isEmpty = query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        results = isEmpty ? (config.compact ? [] : suggestions) : appResults + fileResults
         selectedIndex = results.firstIndex { $0.id == selectedID } ?? min(selectedIndex, max(results.count - 1, 0))
     }
 }

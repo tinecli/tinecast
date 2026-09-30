@@ -29,7 +29,8 @@ struct ResultRow: View {
         .frame(maxHeight: .infinity)
         .background(.quaternary.opacity(isSelected ? 1 : 0), in: .rect(cornerRadius: 8))
         .contentShape(.rect)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(item.subtitle.map { "\(item.title), \($0)" } ?? item.title)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
