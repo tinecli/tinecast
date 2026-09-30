@@ -2,6 +2,10 @@ import Foundation
 import TinecastKit
 
 final class AppsProvider: NSObject {
+    private static let folders = ["/Applications", "/System/Applications", URL.homeDirectory.appending(path: "Applications").path(percentEncoded: false), "/System/Library/CoreServices/Applications"]
+    private static let preferredFolders = ["/Applications/", "/System/Applications/"]
+    private static let finderPath = "/System/Library/CoreServices/Finder.app"
+
     private let query = NSMetadataQuery()
     private let onUpdate: ([Item]) -> Void
 
@@ -9,8 +13,7 @@ final class AppsProvider: NSObject {
         self.onUpdate = onUpdate
         super.init()
         query.predicate = NSPredicate(format: "%K == %@", NSMetadataItemContentTypeKey, "com.apple.application-bundle")
-        query.searchScopes = [NSMetadataQueryLocalComputerScope]
-        query.sortDescriptors = [NSSortDescriptor(key: NSMetadataItemDisplayNameKey, ascending: true)]
+        query.searchScopes = Self.folders
         NotificationCenter.default.addObserver(self, selector: #selector(publish), name: .NSMetadataQueryDidFinishGathering, object: query)
         NotificationCenter.default.addObserver(self, selector: #selector(publish), name: .NSMetadataQueryDidUpdate, object: query)
         query.start()
@@ -19,7 +22,7 @@ final class AppsProvider: NSObject {
     @objc private func publish() {
         query.disableUpdates()
         defer { query.enableUpdates() }
-        let items = query.results.compactMap { result -> Item? in
+        let apps = query.results.compactMap { result -> (bundleID: String, priority: Int, item: Item)? in
             guard let item = result as? NSMetadataItem,
                   let path = item.value(forAttribute: NSMetadataItemPathKey) as? String,
                   let name = item.value(forAttribute: NSMetadataItemDisplayNameKey) as? String
@@ -27,8 +30,13 @@ final class AppsProvider: NSObject {
             let url = URL(filePath: path)
             guard !url.deletingLastPathComponent().pathComponents.contains(where: { $0.hasSuffix(".app") }) else { return nil }
             let title = name.hasSuffix(".app") ? String(name.dropLast(4)) : name
-            return Item(id: path, title: title, icon: .file(url), action: .open(url))
+            let bundleID = item.value(forAttribute: NSMetadataItemCFBundleIdentifierKey) as? String ?? path
+            let priority = Self.preferredFolders.firstIndex { path.hasPrefix($0) } ?? Self.preferredFolders.count
+            return (bundleID, priority, Item(id: path, title: title, icon: .file(url), action: .open(url)))
         }
-        onUpdate(items)
+        let preferred = Dictionary(apps.map { ($0.bundleID, $0) }, uniquingKeysWith: { $0.priority <= $1.priority ? $0 : $1 })
+        let finderURL = URL(filePath: Self.finderPath)
+        let finder = Item(id: Self.finderPath, title: FileManager.default.displayName(atPath: Self.finderPath), icon: .file(finderURL), action: .open(finderURL))
+        onUpdate(preferred.values.map(\.item) + [finder])
     }
 }

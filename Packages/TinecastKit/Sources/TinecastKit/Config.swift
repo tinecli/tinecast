@@ -15,15 +15,20 @@ public struct Config: Codable, Equatable, Sendable {
         }
     }
 
+    public enum Material: String, Codable, Sendable {
+        case glass, frosted
+    }
+
     public var hotkey = KeyCombination("ctrl+space")!
     public var launchAtLogin = false
     public var compact = false
     public var reopenTimeout: TimeInterval = 90
     public var fileSearch = FileSearch()
     public var historyIgnore: String?
+    public var material = Material.glass
 
     private enum CodingKeys: String, CodingKey {
-        case hotkey, launchAtLogin, compact, reopenTimeout, fileSearch, historyIgnore
+        case hotkey, launchAtLogin, compact, reopenTimeout, fileSearch, historyIgnore, material
     }
 
     public init() {}
@@ -37,6 +42,7 @@ public struct Config: Codable, Equatable, Sendable {
         reopenTimeout = try container.decodeIfPresent(TimeInterval.self, forKey: .reopenTimeout) ?? defaults.reopenTimeout
         fileSearch = try container.decodeIfPresent(FileSearch.self, forKey: .fileSearch) ?? defaults.fileSearch
         historyIgnore = try container.decodeIfPresent(String.self, forKey: .historyIgnore)
+        material = try container.decodeIfPresent(Material.self, forKey: .material) ?? defaults.material
         if let historyIgnore, (try? Regex(historyIgnore)) == nil {
             throw DecodingError.dataCorruptedError(forKey: .historyIgnore, in: container, debugDescription: "\"\(historyIgnore)\" isn't a valid regular expression.")
         }
@@ -50,6 +56,7 @@ public struct Config: Codable, Equatable, Sendable {
         try container.encode(reopenTimeout, forKey: .reopenTimeout)
         try container.encode(fileSearch, forKey: .fileSearch)
         try container.encode(historyIgnore, forKey: .historyIgnore)
+        try container.encode(material, forKey: .material)
     }
 
     public func historyIgnores(_ query: String) -> Bool {

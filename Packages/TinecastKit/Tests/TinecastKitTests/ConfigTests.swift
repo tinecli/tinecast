@@ -26,6 +26,7 @@ private func problem(_ json: String) -> String? {
     #expect(decoded.fileSearch.folders == ["~"])
     #expect(decoded.fileSearch.exclusions == ["~/Library"])
     #expect(decoded.historyIgnore == nil)
+    #expect(decoded.material == .glass)
 }
 
 @Test func presentKeysOverrideOnlyThemselves() throws {
@@ -37,6 +38,12 @@ private func problem(_ json: String) -> String? {
     #expect(decoded.fileSearch.folders == ["~/Code"])
     #expect(decoded.fileSearch.exclusions == ["~/Library"])
     #expect(decoded.historyIgnore == "pass.*")
+    #expect(decoded.material == .glass)
+}
+
+@Test func materialDecodesFrosted() throws {
+    #expect(try config(#"{ "material": "frosted" }"#).material == .frosted)
+    #expect(try config(#"{ "material": "glass" }"#).material == .glass)
 }
 
 @Test func defaultsEncodePrettySortedAndDecodeBack() throws {
@@ -48,6 +55,7 @@ private func problem(_ json: String) -> String? {
     #expect(try Config(json: data) == Config())
     #expect(text.contains(#""hotkey" : "ctrl+space""#))
     #expect(text.contains(#""historyIgnore" : null"#))
+    #expect(text.contains(#""material" : "glass""#))
     #expect(text.firstRange(of: "compact")!.lowerBound < text.firstRange(of: "reopenTimeout")!.lowerBound)
 }
 
@@ -56,6 +64,7 @@ private func problem(_ json: String) -> String? {
     #expect(problem(#"{ "reopenTimeout": "soon" }"#)?.hasPrefix("reopenTimeout: ") == true)
     #expect(problem(#"{ "fileSearch": { "folders": "~" } }"#)?.hasPrefix("fileSearch.folders: ") == true)
     #expect(problem(#"{ "historyIgnore": "(unclosed" }"#)?.hasPrefix("historyIgnore: ") == true)
+    #expect(problem(#"{ "material": "frosty" }"#)?.hasPrefix("material: ") == true)
     #expect(problem(#"{ "compact" true }"#)?.contains("line 1") == true)
     #expect(problem("") != nil)
 }

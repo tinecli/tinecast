@@ -26,18 +26,37 @@ struct ResultRow: View {
                 }
             }
             Spacer(minLength: 0)
+            Text(kind)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
         }
         .padding(.horizontal, Self.horizontalPadding)
         .frame(maxHeight: .infinity)
-        .foregroundStyle(isSelected ? Color.white : Color.primary)
-        .background(isSelected ? Color.accentColor : Color.clear, in: .rect(corners: .concentric(minimum: 16)))
+        .background(.fill.opacity(isSelected ? 1 : 0), in: .rect(corners: .concentric(minimum: 16)))
         .contentShape(.rect)
+    }
+
+    private var kind: String {
+        switch item.action {
+        case .open(let url):
+            url.pathExtension == "app" ? "Application" : "File"
+        }
+    }
+
+    private static let iconCache = NSCache<NSString, NSImage>()
+
+    private static func fileIcon(at path: String) -> NSImage {
+        if let cached = iconCache.object(forKey: path as NSString) { return cached }
+        let image = NSWorkspace.shared.icon(forFile: path)
+        iconCache.setObject(image, forKey: path as NSString)
+        return image
     }
 
     @ViewBuilder private var icon: some View {
         switch item.icon {
         case .file(let url):
-            Image(nsImage: NSWorkspace.shared.icon(forFile: url.path(percentEncoded: false)))
+            Image(nsImage: Self.fileIcon(at: url.path(percentEncoded: false)))
                 .resizable()
                 .scaledToFit()
         case .symbol(let name):

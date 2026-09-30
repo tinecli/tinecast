@@ -13,7 +13,10 @@ final class LauncherModel {
         }
     }
     var items: [Item] = [] {
-        didSet { appResults = rank(items, query: query, frecency: frecency) }
+        didSet {
+            appResults = rank(items, query: query, frecency: frecency)
+            updateResults()
+        }
     }
     var config = Config() {
         didSet {
@@ -26,23 +29,25 @@ final class LauncherModel {
     }
     @ObservationIgnored var history = History()
     @ObservationIgnored var frecency = Frecency() {
-        didSet { appResults = rank(items, query: query, frecency: frecency) }
+        didSet {
+            appResults = rank(items, query: query, frecency: frecency)
+            updateResults()
+        }
     }
     private(set) var isPresented = false
     private(set) var results: [Item] = []
     private(set) var selectedIndex = 0
-    private var appResults: [Item] = [] {
-        didSet { updateResults() }
-    }
-    private var fileResults: [Item] = [] {
-        didSet { updateResults() }
-    }
+    @ObservationIgnored private var appResults: [Item] = []
+    @ObservationIgnored private var fileResults: [Item] = []
     @ObservationIgnored private var navigator = HistoryNavigator()
     @ObservationIgnored private var closedAt: Date?
     private var isSearchingFiles = false
     @ObservationIgnored private lazy var filesProvider = FilesProvider { [weak self] items in
-        self?.isSearchingFiles = false
-        self?.fileResults = items
+        guard let self else { return }
+        isSearchingFiles = false
+        guard items != fileResults else { return }
+        fileResults = items
+        updateResults()
     }
 
     var selectedItem: Item? {
@@ -102,6 +107,7 @@ final class LauncherModel {
         fileResults = fileResults.filter { $0.title.localizedStandardContains(trimmed) }
         isSearchingFiles = true
         filesProvider.search(query)
+        results = currentResults
         selectedIndex = 0
     }
 
@@ -116,10 +122,14 @@ final class LauncherModel {
         }
     }
 
+    private var currentResults: [Item] {
+        guard query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return appResults + fileResults }
+        return config.compact ? [] : suggestions
+    }
+
     private func updateResults() {
         let selectedID = selectedItem?.id
-        let isEmpty = query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        results = isEmpty ? (config.compact ? [] : suggestions) : appResults + fileResults
+        results = currentResults
         selectedIndex = results.firstIndex { $0.id == selectedID } ?? min(selectedIndex, max(results.count - 1, 0))
     }
 }

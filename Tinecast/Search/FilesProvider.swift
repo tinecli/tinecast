@@ -7,6 +7,7 @@ final class FilesProvider: NSObject {
 
     var fileSearch = Config.FileSearch()
     private var query: NSMetadataQuery?
+    private var pendingSearch: Task<Void, Never>?
     private let onUpdate: ([Item]) -> Void
 
     init(onUpdate: @escaping ([Item]) -> Void) {
@@ -14,6 +15,7 @@ final class FilesProvider: NSObject {
     }
 
     func search(_ text: String) {
+        pendingSearch?.cancel()
         if let query {
             query.stop()
             NotificationCenter.default.removeObserver(self, name: nil, object: query)
@@ -24,7 +26,13 @@ final class FilesProvider: NSObject {
             onUpdate([])
             return
         }
+        pendingSearch = Task { [weak self] in
+            guard (try? await Task.sleep(for: .milliseconds(100))) != nil, let self else { return }
+            start(trimmed)
+        }
+    }
 
+    private func start(_ trimmed: String) {
         let query = NSMetadataQuery()
         query.predicate = NSPredicate(
             format: "%K CONTAINS[cd] %@ AND %K != %@",

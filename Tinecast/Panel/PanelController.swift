@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import TinecastKit
+import UniformTypeIdentifiers
 
 final class PanelController: NSObject, NSWindowDelegate {
     let model = LauncherModel()
@@ -21,6 +22,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         let hostingView = NSHostingView(rootView: LauncherView(
             model: model,
             run: { [weak self] item in self?.run(item) },
+            reveal: { [weak self] item in self?.reveal(item) },
             cancel: { [weak self] in self?.close() },
             openSettings: { [weak self] in self?.openSettings() },
             quit: { NSApp.terminate(nil) }
@@ -32,7 +34,10 @@ final class PanelController: NSObject, NSWindowDelegate {
         panel.commandShortcuts = [
             ",": { [weak self] in self?.openSettings() },
             "q": { NSApp.terminate(nil) },
-            "\r": { [weak self] in self?.revealSelection() },
+            "\r": { [weak self] in
+                guard let self, let item = model.selectedItem else { return }
+                reveal(item)
+            },
         ]
     }
 
@@ -65,7 +70,12 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     private func openSettings() {
         dismiss()
-        NSWorkspace.shared.open(settingsURL)
+        let workspace = NSWorkspace.shared
+        guard let editor = workspace.urlForApplication(toOpen: .plainText) ?? workspace.urlForApplication(withBundleIdentifier: "com.apple.TextEdit") else {
+            workspace.open(settingsURL)
+            return
+        }
+        workspace.open([settingsURL], withApplicationAt: editor, configuration: NSWorkspace.OpenConfiguration())
     }
 
     private func run(_ item: Item) {
@@ -77,8 +87,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         }
     }
 
-    private func revealSelection() {
-        guard let item = model.selectedItem else { return }
+    private func reveal(_ item: Item) {
         perform(item) { action in
             switch action {
             case .open(let url):
