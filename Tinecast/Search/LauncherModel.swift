@@ -39,14 +39,18 @@ final class LauncherModel {
     }
     @ObservationIgnored private var navigator = HistoryNavigator()
     @ObservationIgnored private var closedAt: Date?
-    @ObservationIgnored private lazy var filesProvider = FilesProvider { [weak self] items in self?.fileResults = items }
+    private var isSearchingFiles = false
+    @ObservationIgnored private lazy var filesProvider = FilesProvider { [weak self] items in
+        self?.isSearchingFiles = false
+        self?.fileResults = items
+    }
 
     var selectedItem: Item? {
         results.indices.contains(selectedIndex) ? results[selectedIndex] : nil
     }
 
     var showsNoResults: Bool {
-        results.isEmpty && !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        results.isEmpty && !isSearchingFiles && !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     func edit(_ text: String) {
@@ -96,6 +100,7 @@ final class LauncherModel {
         appResults = rank(items, query: query, frecency: frecency)
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         fileResults = fileResults.filter { $0.title.localizedStandardContains(trimmed) }
+        isSearchingFiles = true
         filesProvider.search(query)
         selectedIndex = 0
     }
