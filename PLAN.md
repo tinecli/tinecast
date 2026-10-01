@@ -30,70 +30,105 @@ so the shape gets proven before any extension exists.
 Every item is `{ title, icon, keywords, action }`. Actions are a small closed set: open an app,
 open a URL, run a process, run AppleScript, call a system API.
 
-## v0: the smallest thing worth using daily
+## v0: built
 
-- Hotkey (default ⌃Space, configurable; an alert if it can't be registered), glass panel on the active screen, Esc and
-  click-away close it, launch at login.
-- No menu bar item and no Dock icon. The panel has a menu button (settings, quit), ⌘, opens settings and
-  ⌘Q quits while the panel is showing.
-- Apps with real icons, matching and frecency ranking.
-- Empty field shows suggestions, Raycast style: your most frecent items, ready to pick with ↓ and ↵.
-  A `compact` config option hides them for a Spotlight-style bar that only expands when you type.
-- File search mixed into root results below apps, via `NSMetadataQuery`: a few top hits, only from 3 typed
-  characters, ⌘↵ reveals in Finder.
-- ↑/↓ prefix query history, persisted locally.
-- Config is a JSON file; no settings UI yet. ⌘, and the menu button open it in the default editor, and it
-  reloads on save. Keys: hotkey, launch at login, compact mode, reopen timeout, file search folders and exclusions,
-  history-ignore pattern.
-- Panel behaviour: shows on the current Space, including over full-screen apps; focus goes back to the
-  previous app on close; if the hotkey can't be registered (Spotlight still owns it), say so instead of
-  failing silently.
-- Respects Reduce Motion and Reduce Transparency, and has VoiceOver labels (HIG baseline).
-- Unit tests for matching, ranking and history navigation, the logic most likely to regress.
-- Signed with Developer ID, built locally. No auto-updater yet.
-- A standard Xcode project with a macOS app target (macOS 26+), the way Apple sets up an app. Built from
-  scratch, not modelled on tine.
+**Panel and platform**
+- ⌃Space by default, configurable via `hotkey`. An alert appears only when a newly chosen combination can't be registered.
+- Non-activating glass panel on the screen with the mouse. It shows on every Space, including over full-screen
+  apps, and focus returns to the previous app when it closes. Esc and click-away close it.
+- One Liquid Glass surface. The panel's colours (selection, search text, icon) are fixed from the system
+  light/dark setting, because glass would otherwise re-tint them against the backdrop.
+- Motion: show/hide materializes in 0.12 s. ↵/⌘↵ hide instantly, then open. Nothing animates while typing.
+  In compact mode only the bar↔panel change animates.
+- No Dock icon and no menu bar item. Panel controls:
+  - The expanded panel has a round menu button (Settings… ⌘,, Quit tinecast ⌘Q).
+  - An action pill shows the selected item's actions and shortcuts (Open ↵, Show in Finder ⌘↵, Copy Answer ↵).
+- Reopen within `reopenTimeout` (90 s) keeps the query and selection.
+
+**Search**
+- Apps from the standard folders only, deduped by bundle ID, with nested apps excluded. Real icons, cached.
+- Matching tiers: exact, prefix, word-start, acronym, keyword, substring. Case and diacritic insensitive.
+- Frecency is learned per query prefix (7-day half-life).
+- File search via `NSMetadataQuery`: up to 5 hits below apps, from 3 characters, debounced 100 ms. Stale rows
+  are filtered out and the configured folders/exclusions are honoured.
+- Empty field, non-compact: always fully expanded with **Recent** and **Applications** (A to Z) sections.
+  - Recent lists learned items first, then macOS last-used dates.
+- While typing, results are grouped under **Applications** / **Files**. "No Results" shows only once file search
+  has answered. In compact mode it never expands the bar.
+- History works like tine's shell integration:
+  - ↑ on the top row recalls older queries with the typed prefix.
+  - Both arrows walk history until you type.
+  - `historyIgnore` keeps matching queries out of history and ranking.
+
+**Calculator**
+- Hand-written parser:
+  - operators `+ - * / × ÷ ^`, `%`, parentheses
+  - constants and functions (`sqrt`, `round`, `log`, `sin`, …)
+  - locale-aware decimal and grouping separators
+- Currency: `14390 SEK + 260 EUR`, `100 usd to sek`, `€260`. Sums convert to the first currency, a lone amount
+  to the local currency.
+- Units via Foundation `Measurement`: length, mass, temperature, duration, volume, area, speed, storage.
+- Conversion card: value → result with name tags, plus the ECB rate and its date. ↵ copies the answer.
+- Number formatting uses `NumberFormatter`, which honours the user's custom number symbols (`FormatStyle`
+  doesn't).
+- Rates:
+  - ECB reference rates (`data-api.ecb.europa.eu`, no key), cached in `rates.json`.
+  - Stale once a weekday 16:15 Berlin time has passed after the stored rate date.
+  - Fetched at launch and on use when stale, one in flight, retried hourly on failure.
+
+**Storage and settings**
+- `~/Library/Application Support/dev.gustaf.tinecast/` holds `settings.json`, `history.json`, `ranking.json`
+  and `rates.json`.
+- A corrupt file is moved aside as `.corrupt`, never overwritten. Write failures are logged.
+- `settings.json` keys: `hotkey`, `launchAtLogin`, `compact`, `reopenTimeout`, `fileSearch`, `historyIgnore`.
+  - It's watched and reloads on save.
+  - An invalid file keeps the previous settings and shows one alert.
+  - Settings… opens it in the default plain-text editor.
+
+**Project**
+- Swift only:
+  - xcodegen `project.yml` with synced folders
+  - an app target (macOS 26+, Swift 6, main-actor default isolation)
+  - a `TinecastKit` logic package with Swift Testing tests
+
+### Left for v0
+
+- A Release build signed with Developer ID, installed in `/Applications`. Launch at login should only be turned
+  on for that build. Notarize when sharing.
+- Confirm on screen:
+  - click-away
+  - ⌘↵ reveal
+  - history recall
+  - the reopen timeout
+  - `historyIgnore`
+  - launch at login
 
 ## v1: platform
 
-- **Hotkey.** Global and configurable. Carbon `RegisterEventHotKey`; ⌘Space works once Spotlight's is unbound.
-- **Panel.** Non-activating floating panel on the active screen. Shows instantly, closes on Esc or focus loss.
-- **Look and feel.** Pure SwiftUI, Liquid Glass, spring animations for show/hide and result changes, SF Symbols.
-- **Matching.** Prefix, word-start and acronym (`vsc` finds Visual Studio Code), case and diacritic insensitive.
-- **Ranking.** Frecency learned per query prefix: typing `g` and picking Chrome teaches `g` to mean Chrome.
-- **History.** Every submitted query is kept in order: persisted, consecutive duplicates collapsed, capped
-  (say 500 entries). Arrow keys work like tine's shell integration:
-  - ↑/↓ move the selection through results.
-  - ↑ on the top row (or with no results) enters history mode, recalling older queries that start with the
-    typed text, like zsh's `up-line-or-beginning-search`.
-  - In history mode both arrows walk history (↓ towards newer) and never drop back into the list;
-    typing leaves history mode. A history-ignore pattern (like tine's `HistoryIgnore`) keeps secrets out.
-- **Keyboard.** ↵ runs the primary action, ⌘K opens the action menu, ⌘↵ runs the secondary action
-  (reveal in Finder, copy, and so on).
-- **Reopen.** Like Raycast's default "pop to root after 90 seconds": reopened within 90 s, the previous query and
-  selection are still there; after that, an empty field. The timeout is configurable.
+- **Keyboard.** ⌘K opens an action menu for the selected item.
 - **Arguments.** Tab moves into an argument field for items that take one (commands).
 - **Aliases.** A user alias on any item, for an exact match.
-- **Settings.** Hotkey, providers on/off, hidden items, aliases, launch at login (`SMAppService`).
-
-- **Settings location.** Settings, aliases, commands and hidden items live in one `settings.json`. Default is
-  Application Support; the user can pick any folder instead (iCloud Drive, Dropbox, a dotfiles repo) and that's
-  the whole sync story. Last write wins; the file is watched and reloaded on change. If the folder is in
-  iCloud Drive, trigger a download first in case macOS evicted it.
-- **History and ranking stay local.** Always in Application Support, never in the chosen folder.
-  Settings has Export and Import: one JSON file with history and ranking. Import merges (history appended
-  and deduped by time, ranking counts summed) rather than replacing.
+- **Settings window.** Hotkey, providers on/off, hidden items, aliases, launch at login.
+- **Settings location.** The user can move `settings.json` to any folder (iCloud Drive, Dropbox, a dotfiles repo),
+  and that's the whole sync story. Last write wins. If the folder is in iCloud Drive, trigger a download first
+  in case macOS evicted it.
+- **History and ranking stay local**, never in the chosen folder. Settings gets Export and Import of one JSON
+  file with history and ranking. Import merges (history appended and deduped, ranking counts summed).
+- **Icons.** Preload app icons into the cache at launch.
 
 ## v1: providers
 
-- **Applications.** `NSMetadataQuery` for app bundles; updates live when apps are installed or removed. Real icons.
 - **System Settings.** Discovered at runtime, not hardcoded. Every pane is an appex in
   `/System/Library/ExtensionKit/Extensions/` with `EXExtensionPointIdentifier = com.apple.Settings.extension.ui`.
   Its Info.plist gives the display name, the icon (`ISGraphicIconConfiguration`), search terms and deep-link support.
 - **System actions.** A curated list with SF Symbols (see below). There's no public API that lists them.
 - **Commands.** User-defined shell commands with optional arguments and an optional output view.
-- **Calculator.** Inline in root search: math, currency (`14390 SEK + 260 EUR`) and unit conversions
-  (`Measurement`/`UnitConverter` from Foundation). ↵ copies the result. Keeps its own history.
+- **Calculator extras.**
+  - `kr` (and Swedish names) as SEK
+  - `x` as multiply
+  - implicit multiplication (`2pi`)
+  - modulo
+  - its own history
 
 ## v1.x: next providers
 
@@ -168,6 +203,5 @@ not its API), generic JSON-UI frameworks such as json-render.
 
 ## Open questions
 
-- **Exchange rates.** Source and refresh (for example the ECB daily feed, which needs no key), and offline behaviour.
-- **History and privacy.** Should arguments typed into commands be recorded? A "clear history" button in settings?
-- **Distribution.** Developer ID + notarization, updates via Sparkle or manual?
+- **History and privacy.** Should arguments typed into commands be recorded? A "clear history" action?
+- **Distribution.** Notarization and updates (Sparkle or manual) once the app is shared.
