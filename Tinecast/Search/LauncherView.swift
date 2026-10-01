@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import TinecastKit
 
@@ -83,6 +84,15 @@ struct LauncherView: View {
         }
     }
 
+    private static let searchFont: Font = {
+        let base = NSFont.preferredFont(forTextStyle: .title1)
+        let descriptor = base.fontDescriptor.addingAttributes([.featureSettings: [
+            [NSFontDescriptor.FeatureKey.typeIdentifier: kNumberSpacingType, .selectorIdentifier: kMonospacedNumbersSelector],
+            [NSFontDescriptor.FeatureKey.typeIdentifier: kCaseSensitiveLayoutType, .selectorIdentifier: kCaseSensitiveLayoutOnSelector],
+        ]])
+        return Font(NSFont(descriptor: descriptor, size: base.pointSize) ?? base)
+    }()
+
     private var searchBar: some View {
         HStack(spacing: ResultRow.iconSpacing) {
             Image(systemName: "magnifyingglass")
@@ -95,6 +105,7 @@ struct LauncherView: View {
                 prompt: Text("Search").foregroundStyle(.secondary)
             )
             .textFieldStyle(.plain)
+            .font(Self.searchFont)
             .foregroundStyle(colorScheme == .dark ? Color.white : Color.black)
             .focused($isSearchFocused)
             .onAppear { isSearchFocused = true }
