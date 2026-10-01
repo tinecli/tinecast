@@ -96,7 +96,6 @@ open a URL, run a process, run AppleScript, call a system API.
 - A Release build signed with Developer ID, installed in `/Applications`. Launch at login should only be turned
   on for that build. Notarize when sharing.
 - Confirm on screen:
-  - click-away
   - ⌘↵ reveal
   - `historyIgnore`
   - launch at login
