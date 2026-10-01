@@ -100,6 +100,7 @@ struct LauncherView: View {
                 prompt: Text("Search").foregroundStyle(.secondary)
             )
             .textFieldStyle(.plain)
+            .foregroundStyle(colorScheme == .dark ? Color.white : Color.black)
             .focused($isSearchFocused)
             .onAppear { isSearchFocused = true }
             .onSubmit {
