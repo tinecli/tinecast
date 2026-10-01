@@ -8,7 +8,6 @@ final class SettingsModel {
     private static let saveDelay = Duration.milliseconds(250)
 
     let url: URL
-    let systemActions = SystemAction.allCases.map(\.item)
     var config = Config() {
         didSet {
             if config.commands != oldValue.commands { commandItems = config.commands.map(\.item) }
@@ -43,6 +42,28 @@ final class SettingsModel {
     func setHidden(_ hidden: Bool, for itemID: String) {
         guard config.hiddenItems.contains(itemID) != hidden else { return }
         config.setHidden(hidden, for: itemID)
+    }
+
+    func saveCommand(_ command: Command) {
+        guard let index = config.commands.firstIndex(where: { $0.id == command.id }) else {
+            config.commands.append(command)
+            return
+        }
+        config.commands[index] = command
+    }
+
+    func duplicateCommand(_ command: Command) {
+        let copy = Command(name: "\(command.name) Copy", command: command.command, symbol: command.symbol, confirm: command.confirm, useShell: command.useShell)
+        let index = config.commands.firstIndex { $0.id == command.id }.map { $0 + 1 } ?? config.commands.endIndex
+        config.commands.insert(copy, at: index)
+    }
+
+    func deleteCommand(_ command: Command) {
+        var updated = config
+        updated.commands.removeAll { $0.id == command.id }
+        updated.setAlias("", for: command.item.id)
+        updated.setHidden(false, for: command.item.id)
+        config = updated
     }
 
     func adopt(_ loaded: Config) {

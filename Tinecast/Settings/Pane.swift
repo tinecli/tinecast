@@ -32,17 +32,17 @@ enum Pane: Hashable {
         )
         case .applications: (
             "Applications", "square.grid.2x2.fill", .blue,
-            "Choose which apps appear in search and give them aliases.",
+            "Give apps an alias or hide them from search.",
             ["Apps", "Alias", "Hide", "Show in Search"]
         )
         case .commands: (
             "Commands", "terminal.fill", Color(white: 0.2),
-            "Run your own shell commands from tinecast.",
+            "Run your own commands from tinecast.",
             ["Shell", "Script", "Terminal", "Alias", "Add Command"]
         )
         case .systemActions: (
             "System Actions", "bolt.fill", .orange,
-            "Control your Mac with actions like Lock Screen and Sleep.",
+            "Actions that control your Mac.",
             ["Lock Screen", "Sleep", "Restart", "Shut Down", "Log Out", "Dark Mode", "Trash", "Eject", "Volume", "Alias", "Hide"]
         )
         case .files: (
@@ -88,24 +88,31 @@ struct PaneHistory {
 }
 
 struct PaneTile: View {
-    let pane: Pane
+    let symbol: String
+    let color: Color
     let size: CGFloat
 
     var body: some View {
         RoundedRectangle(cornerRadius: size / 4, style: .continuous)
-            .fill(pane.color.gradient)
+            .fill(color.gradient)
             .overlay {
                 RoundedRectangle(cornerRadius: size / 4, style: .continuous)
                     .strokeBorder(.white.opacity(0.25), lineWidth: 0.5)
             }
             .overlay {
-                Image(systemName: pane.symbol)
+                Image(systemName: symbol)
                     .font(.system(size: size * 0.62, weight: .semibold))
                     .symbolRenderingMode(.monochrome)
                     .foregroundStyle(.white)
             }
             .frame(width: size, height: size)
             .accessibilityHidden(true)
+    }
+}
+
+extension PaneTile {
+    init(pane: Pane, size: CGFloat) {
+        self.init(symbol: pane.symbol, color: pane.color, size: size)
     }
 }
 

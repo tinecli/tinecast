@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="tile" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#233247"/>
+      <stop offset="0.55" stop-color="#141c2b"/>
+      <stop offset="1" stop-color="#0a0e17"/>
+    </linearGradient>
+    <radialGradient id="aura" cx="0.44" cy="0.44" r="0.55">
+      <stop offset="0" stop-color="#5eead4" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#5eead4" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="glyph" gradientUnits="userSpaceOnUse" x1="380" y1="300" x2="600" y2="760">
+      <stop offset="0" stop-color="#7df0dc"/>
+      <stop offset="1" stop-color="#22c9e0"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.30"/>
+      <stop offset="0.4" stop-color="#ffffff" stop-opacity="0.03"/>
+      <stop offset="0.72" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.18"/>
+    </linearGradient>
+    <clipPath id="tileClip">
+      <rect x="92" y="92" width="840" height="840" rx="196" ry="196"/>
+    </clipPath>
+  </defs>
+
+  <!-- squircle tile -->
+  <rect x="92" y="92" width="840" height="840" rx="196" ry="196" fill="url(#tile)"/>
+  <g clip-path="url(#tileClip)">
+    <rect x="92" y="92" width="840" height="840" fill="url(#aura)"/>
+    <rect x="92" y="92" width="840" height="840" fill="url(#sheen)"/>
+  </g>
+  <!-- launcher bar: glass pill with prompt chevron and caret -->
+  <rect x="172" y="392" width="680" height="240" rx="120" ry="120"
+        fill="#5eead4" fill-opacity="0.12" stroke="url(#glyph)" stroke-opacity="0.55" stroke-width="24"/>
+  <g fill="none" stroke="url(#glyph)" stroke-width="62" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="300,452 360,512 300,572"/>
+    <line x1="476" y1="462" x2="476" y2="562" opacity="0.55"/>
+  </g>
+
+  <!-- crisp inner edge -->
+  <rect x="92.5" y="92.5" width="839" height="839" rx="195.5" ry="195.5"
+        fill="none" stroke="#ffffff" stroke-opacity="0.10" stroke-width="2"/>
+</svg>

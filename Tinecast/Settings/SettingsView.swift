@@ -66,7 +66,8 @@ struct SettingsView: View {
         switch history.current {
         case .general: GeneralPane(model: model)
         case .permissions: PermissionsPane()
-        case .applications, .systemActions: UpcomingPane(pane: history.current)
+        case .applications: ApplicationsSettings(model: model)
+        case .systemActions: SystemActionsSettings(model: model)
         case .commands: CommandsSettings(model: model)
         case .files: FilesPane(model: model)
         case .calculator: CalculatorPane(model: model)
@@ -103,21 +104,5 @@ private struct FileProblemBanner: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)
-    }
-}
-
-private struct UpcomingPane: View {
-    let pane: Pane
-
-    var body: some View {
-        Form {
-            PaneHeader(pane: pane)
-            Section {
-                ContentUnavailableView("Coming Soon", systemImage: pane.symbol, description: Text("\(pane.title) settings will appear here."))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
-            }
-        }
-        .formStyle(.grouped)
     }
 }
