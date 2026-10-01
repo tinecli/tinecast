@@ -82,6 +82,10 @@ struct LauncherView: View {
         }
         .padding(Self.margin)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onChange(of: model.isPresented) { _, isPresented in
+            guard isPresented else { return }
+            isSearchFocused = true
+        }
     }
 
     private var searchBar: some View {
