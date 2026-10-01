@@ -41,8 +41,10 @@ struct ActionBar: View {
                     Button { run(item) } label: {
                         ShortcutLabel(title: openTitle(for: item), shortcut: "↵")
                     }
-                    Button { reveal(item) } label: {
-                        ShortcutLabel(title: "Show in Finder", shortcut: "⌘↵")
+                    if case .open = item.action {
+                        Button { reveal(item) } label: {
+                            ShortcutLabel(title: "Show in Finder", shortcut: "⌘↵")
+                        }
                     }
                 }
                 .buttonStyle(.plain)
@@ -58,6 +60,8 @@ struct ActionBar: View {
         switch item.action {
         case .open(let url):
             url.pathExtension == "app" ? "Open Application" : "Open"
+        case .copy:
+            "Copy Answer"
         }
     }
 }

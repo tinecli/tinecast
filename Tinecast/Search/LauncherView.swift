@@ -47,7 +47,6 @@ struct LauncherView: View {
 
     private var resultsHeight: CGFloat {
         if !model.config.compact { return ResultsList.maximumContentHeight }
-        if model.showsNoResults { return ResultsList.rowHeight }
         let content = CGFloat(model.results.count) * ResultsList.rowHeight + CGFloat(model.sections.count) * ResultsList.headerHeight
         return min(content, ResultsList.maximumContentHeight)
     }

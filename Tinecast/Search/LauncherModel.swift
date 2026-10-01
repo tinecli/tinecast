@@ -32,6 +32,13 @@ final class LauncherModel {
             updateResults()
         }
     }
+    var exchangeRates: [String: Double] = [:] {
+        didSet {
+            calculatorResults = calculatorItems()
+            updateResults()
+        }
+    }
+    @ObservationIgnored var refreshRates: () -> Void = {}
     @ObservationIgnored var history = History()
     @ObservationIgnored var frecency = Frecency() {
         didSet {
@@ -43,6 +50,7 @@ final class LauncherModel {
     private(set) var results: [Item] = []
     private(set) var sections: [ResultSection] = []
     private(set) var selectedIndex = 0
+    @ObservationIgnored private var calculatorResults: [Item] = []
     @ObservationIgnored private var appResults: [Item] = []
     @ObservationIgnored private var fileResults: [Item] = []
     @ObservationIgnored private var navigator = HistoryNavigator()
@@ -91,6 +99,7 @@ final class LauncherModel {
     func record(_ item: Item) {
         guard !config.historyIgnores(query) else { return }
         history.record(query)
+        guard case .open = item.action else { return }
         frecency.record(query: query, itemID: item.id, at: .now)
     }
 
@@ -108,6 +117,8 @@ final class LauncherModel {
     }
 
     private func search() {
+        calculatorResults = calculatorItems()
+        if !calculatorResults.isEmpty || exchangeRates.isEmpty { refreshRates() }
         appResults = rank(apps.alphabetical, query: query, frecency: frecency)
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         fileResults = fileResults.filter { $0.title.localizedStandardContains(trimmed) }
@@ -115,6 +126,11 @@ final class LauncherModel {
         filesProvider.search(query)
         layOut(currentGroups)
         selectedIndex = 0
+    }
+
+    private func calculatorItems() -> [Item] {
+        guard let calculation = calculate(query, rates: exchangeRates, localCurrency: Locale.current.currency?.identifier, locale: .current) else { return [] }
+        return [Item(id: "calculator", title: calculation.display, subtitle: calculation.expression, icon: .symbol("equal.circle"), action: .copy(calculation.raw))]
     }
 
     private var recents: [Item] {
@@ -128,7 +144,7 @@ final class LauncherModel {
 
     private var currentGroups: [(title: String, items: [Item])] {
         guard query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return [("Applications", appResults), ("Files", fileResults)]
+            return [("Calculator", calculatorResults), ("Applications", appResults), ("Files", fileResults)]
         }
         return config.compact ? [] : [("Recent", recents), ("Applications", apps.alphabetical)]
     }

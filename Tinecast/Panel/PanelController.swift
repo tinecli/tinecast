@@ -4,8 +4,9 @@ import TinecastKit
 import UniformTypeIdentifiers
 
 final class PanelController: NSObject, NSWindowDelegate {
-    let model = LauncherModel()
+    let model: LauncherModel
     private let panel = LauncherPanel()
+    private let ratesProvider: RatesProvider
     private let historyFile: JSONFile<History>
     private let frecencyFile: JSONFile<Frecency>
     private let settingsURL: URL
@@ -15,7 +16,12 @@ final class PanelController: NSObject, NSWindowDelegate {
         historyFile = JSONFile(url: folder.appending(path: "history.json"))
         frecencyFile = JSONFile(url: folder.appending(path: "ranking.json"))
         self.settingsURL = settingsURL
+        let model = LauncherModel()
+        self.model = model
+        ratesProvider = RatesProvider(file: JSONFile(url: folder.appending(path: "rates.json"))) { rates in model.exchangeRates = rates.rates }
         super.init()
+        model.refreshRates = { [weak ratesProvider] in ratesProvider?.refreshIfStale() }
+        ratesProvider.refreshIfStale()
         model.history = historyFile.load() ?? History()
         model.frecency = frecencyFile.load() ?? Frecency()
 
@@ -79,26 +85,26 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     private func run(_ item: Item) {
-        perform(item) { action in
-            switch action {
+        perform(item) {
+            switch item.action {
             case .open(let url):
                 NSWorkspace.shared.open(url, configuration: NSWorkspace.OpenConfiguration())
+            case .copy(let text):
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(text, forType: .string)
+                previousApp?.activate()
             }
         }
     }
 
     private func reveal(_ item: Item) {
-        perform(item) { action in
-            switch action {
-            case .open(let url):
-                NSWorkspace.shared.activateFileViewerSelecting([url])
-            }
-        }
+        guard case .open(let url) = item.action else { return }
+        perform(item) { NSWorkspace.shared.activateFileViewerSelecting([url]) }
     }
 
-    private func perform(_ item: Item, _ body: (TinecastKit.Action) -> Void) {
+    private func perform(_ item: Item, _ body: () -> Void) {
         hide()
-        body(item.action)
+        body()
         remember(item)
     }
 

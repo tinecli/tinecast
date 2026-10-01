@@ -17,22 +17,37 @@ struct ResultRow: View {
             icon
                 .frame(width: Self.iconSize, height: Self.iconSize)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(item.title)
-                    .lineLimit(1)
-                if let subtitle = item.subtitle {
-                    Text(subtitle)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+            switch item.action {
+            case .open(let url):
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(item.title)
                         .lineLimit(1)
-                        .truncationMode(.middle)
+                    if let subtitle = item.subtitle {
+                        Text(subtitle)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
                 }
+                Spacer(minLength: 0)
+                Text(url.pathExtension == "app" ? "Application" : "File")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            case .copy:
+                Text(item.title)
+                    .font(.title.weight(.semibold))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .layoutPriority(1)
+                Spacer(minLength: 16)
+                Text(item.subtitle ?? "")
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
-            Spacer(minLength: 0)
-            Text(kind)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
         }
         .padding(.horizontal, Self.horizontalPadding)
         .frame(maxHeight: .infinity)
@@ -43,13 +58,6 @@ struct ResultRow: View {
             in: .rect(corners: .concentric(minimum: 16))
         )
         .contentShape(.rect)
-    }
-
-    private var kind: String {
-        switch item.action {
-        case .open(let url):
-            url.pathExtension == "app" ? "Application" : "File"
-        }
     }
 
     private static let iconCache = NSCache<NSString, NSImage>()
