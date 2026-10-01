@@ -49,3 +49,21 @@ private func app(_ title: String) -> Item {
 
     #expect(catalog.recents(learned: [], limit: 5) { _ in nil }.isEmpty)
 }
+
+@Test func recentsSkipHiddenItemsWhetherLearnedOrLastUsed() {
+    let catalog = AppCatalog([(app("Mail"), now - 300), (app("Notes"), now - 100), (app("Safari"), now - 200)])
+    let recents = catalog.recents(learned: [app("Safari").id, "system:sleep"], limit: 5, excluding: [app("Safari").id, app("Notes").id, "system:sleep"]) { _ in
+        SystemAction.sleep.item
+    }
+
+    #expect(recents.map(\.title) == ["Mail"])
+}
+
+@Test func recentsResolveLearnedActions() {
+    let catalog = AppCatalog([(app("Mail"), now)])
+    let recents = catalog.recents(learned: ["system:sleep"], limit: 5) { id in
+        SystemAction.allCases.map(\.item).first { $0.id == id }
+    }
+
+    #expect(recents.map(\.title) == ["Sleep", "Mail"])
+}

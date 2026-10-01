@@ -19,8 +19,7 @@ final class LauncherModel {
     }
     var apps = AppCatalog() {
         didSet {
-            appResults = rank(apps.alphabetical, query: query, frecency: frecency)
-            updateResults()
+            searchable = (apps.alphabetical + config.commands.map(\.item) + SystemAction.allCases.map(\.item)).filter { !config.hiddenItems.contains($0.id) }
         }
     }
     var config = Config() {
@@ -29,7 +28,7 @@ final class LauncherModel {
                 filesProvider.fileSearch = config.fileSearch
                 filesProvider.search(query)
             }
-            updateResults()
+            searchable = (apps.alphabetical + config.commands.map(\.item) + SystemAction.allCases.map(\.item)).filter { !config.hiddenItems.contains($0.id) }
         }
     }
     var exchangeRates: ExchangeRates? {
@@ -42,7 +41,7 @@ final class LauncherModel {
     @ObservationIgnored var history = History()
     @ObservationIgnored var frecency = Frecency() {
         didSet {
-            appResults = rank(apps.alphabetical, query: query, frecency: frecency)
+            rankedResults = rank(searchable, query: query, frecency: frecency, aliases: config.aliases)
             updateResults()
         }
     }
@@ -51,7 +50,13 @@ final class LauncherModel {
     private(set) var sections: [ResultSection] = []
     private(set) var selectedIndex = 0
     private(set) var calculation: Calculation?
-    @ObservationIgnored private var appResults: [Item] = []
+    @ObservationIgnored private var searchable: [Item] = [] {
+        didSet {
+            rankedResults = rank(searchable, query: query, frecency: frecency, aliases: config.aliases)
+            updateResults()
+        }
+    }
+    @ObservationIgnored private var rankedResults: [Item] = []
     @ObservationIgnored private var fileResults: [Item] = []
     @ObservationIgnored private var navigator = HistoryNavigator()
     @ObservationIgnored private var closedAt: Date?
@@ -99,7 +104,7 @@ final class LauncherModel {
     func record(_ item: Item) {
         guard !config.historyIgnores(query) else { return }
         history.record(query)
-        guard case .open = item.action else { return }
+        if case .copy = item.action { return }
         frecency.record(query: query, itemID: item.id, at: .now)
     }
 
@@ -119,7 +124,7 @@ final class LauncherModel {
     private func search() {
         calculation = calculate(query, rates: exchangeRates, localCurrency: Locale.current.currency?.identifier, locale: .current)
         if calculation != nil || exchangeRates == nil { refreshRates() }
-        appResults = rank(apps.alphabetical, query: query, frecency: frecency)
+        rankedResults = rank(searchable, query: query, frecency: frecency, aliases: config.aliases)
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         fileResults = fileResults.filter { $0.title.localizedStandardContains(trimmed) }
         isSearchingFiles = true
@@ -134,7 +139,8 @@ final class LauncherModel {
     }
 
     private var recents: [Item] {
-        apps.recents(learned: frecency.suggestions(limit: Self.recentLimit, now: .now), limit: Self.recentLimit) { path in
+        apps.recents(learned: frecency.suggestions(limit: Self.recentLimit, now: .now), limit: Self.recentLimit, excluding: Set(config.hiddenItems)) { [searchable] path in
+            if let item = searchable.first(where: { $0.id == path }) { return item }
             guard FileManager.default.fileExists(atPath: path) else { return nil }
             let url = URL(filePath: path)
             let folder = ((path as NSString).deletingLastPathComponent as NSString).abbreviatingWithTildeInPath
@@ -144,9 +150,9 @@ final class LauncherModel {
 
     private var currentGroups: [(title: String, items: [Item])] {
         guard query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return [("Calculator", calculatorResults), ("Applications", appResults), ("Files", fileResults)]
+            return [("Calculator", calculatorResults), ("Results", rankedResults), ("Files", fileResults.filter { !config.hiddenItems.contains($0.id) })]
         }
-        return config.compact ? [] : [("Recent", recents), ("Applications", apps.alphabetical)]
+        return config.compact ? [] : [("Recent", recents), ("Applications", apps.alphabetical.filter { !config.hiddenItems.contains($0.id) })]
     }
 
     private func layOut(_ groups: [(title: String, items: [Item])]) {

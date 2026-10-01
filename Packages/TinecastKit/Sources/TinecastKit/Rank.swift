@@ -1,9 +1,9 @@
 import Foundation
 
-public func rank(_ items: [Item], query: String, frecency: Frecency = Frecency(), now: Date = .now) -> [Item] {
+public func rank(_ items: [Item], query: String, frecency: Frecency = Frecency(), aliases: [String: String] = [:], now: Date = .now) -> [Item] {
     items
         .compactMap { item -> (item: Item, score: Double)? in
-            guard let match = matchScore(query: query, title: item.title, keywords: item.keywords) else { return nil }
+            guard let match = matchScore(query: query, title: item.title, keywords: item.keywords, alias: aliases[item.id]) else { return nil }
             let learned = frecency.score(query: query, itemID: item.id, now: now)
             return (item, match + 0.25 * learned / (learned + 2))
         }

@@ -7,6 +7,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     let model: LauncherModel
     private let panel = LauncherPanel()
     private let ratesProvider: RatesProvider
+    private let systemActions = SystemActionRunner()
     private let historyFile: JSONFile<History>
     private let frecencyFile: JSONFile<Frecency>
     private let settingsURL: URL
@@ -93,6 +94,13 @@ final class PanelController: NSObject, NSWindowDelegate {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(text, forType: .string)
                 previousApp?.activate()
+            case .run(let command):
+                previousApp?.activate()
+                guard !command.confirm || presentAlert("Run “\(command.name)”?", confirming: "Run") else { return }
+                launchInBackground("“\(command.name)” failed", "/bin/zsh", ["-l", "-c", command.command])
+            case .system(let action):
+                previousApp?.activate()
+                systemActions.perform(action, frontmost: previousApp)
             }
         }
     }

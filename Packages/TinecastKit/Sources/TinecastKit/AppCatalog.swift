@@ -17,9 +17,9 @@ public struct AppCatalog: Sendable {
         byID = Dictionary(apps.map { ($0.item.id, $0.item) }, uniquingKeysWith: { first, _ in first })
     }
 
-    public func recents(learned ids: [String], limit: Int, resolveFile: (String) -> Item?) -> [Item] {
-        let learned = ids.compactMap { byID[$0] ?? resolveFile($0) }
-        let learnedIDs = Set(learned.map(\.id))
-        return Array((learned + byLastUse.filter { !learnedIDs.contains($0.id) }).prefix(limit))
+    public func recents(learned ids: [String], limit: Int, excluding hidden: Set<String> = [], resolve: (String) -> Item?) -> [Item] {
+        let learned = ids.filter { !hidden.contains($0) }.compactMap { byID[$0] ?? resolve($0) }
+        let shownIDs = hidden.union(learned.map(\.id))
+        return Array((learned + byLastUse.filter { !shownIDs.contains($0.id) }).prefix(limit))
     }
 }

@@ -21,9 +21,12 @@ public struct Config: Codable, Equatable, Sendable {
     public var reopenTimeout: TimeInterval = 90
     public var fileSearch = FileSearch()
     public var historyIgnore: String?
+    public var commands: [Command] = []
+    public var aliases: [String: String] = [:]
+    public var hiddenItems: [String] = []
 
     private enum CodingKeys: String, CodingKey {
-        case hotkey, launchAtLogin, compact, reopenTimeout, fileSearch, historyIgnore
+        case hotkey, launchAtLogin, compact, reopenTimeout, fileSearch, historyIgnore, commands, aliases, hiddenItems
     }
 
     public init() {}
@@ -40,6 +43,13 @@ public struct Config: Codable, Equatable, Sendable {
         if let historyIgnore, (try? Regex(historyIgnore)) == nil {
             throw DecodingError.dataCorruptedError(forKey: .historyIgnore, in: container, debugDescription: "\"\(historyIgnore)\" isn't a valid regular expression.")
         }
+        commands = try container.decodeIfPresent([Command].self, forKey: .commands) ?? defaults.commands
+        let ids = commands.map(\.id)
+        if let duplicate = ids.enumerated().first(where: { ids[..<$0.offset].contains($0.element) })?.element {
+            throw DecodingError.dataCorruptedError(forKey: .commands, in: container, debugDescription: "More than one command has the id \"\(duplicate)\". Each command needs its own id.")
+        }
+        aliases = try container.decodeIfPresent([String: String].self, forKey: .aliases) ?? defaults.aliases
+        hiddenItems = try container.decodeIfPresent([String].self, forKey: .hiddenItems) ?? defaults.hiddenItems
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -50,6 +60,9 @@ public struct Config: Codable, Equatable, Sendable {
         try container.encode(reopenTimeout, forKey: .reopenTimeout)
         try container.encode(fileSearch, forKey: .fileSearch)
         try container.encode(historyIgnore, forKey: .historyIgnore)
+        try container.encode(commands, forKey: .commands)
+        try container.encode(aliases, forKey: .aliases)
+        try container.encode(hiddenItems, forKey: .hiddenItems)
     }
 
     public func historyIgnores(_ query: String) -> Bool {

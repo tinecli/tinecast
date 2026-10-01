@@ -19,8 +19,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         configWatcher = ConfigWatcher(
             url: Self.settingsURL,
             onReload: { [weak self] config in self?.apply(config) },
-            onInvalid: { [weak self] problem in
-                self?.alert("settings.json has a problem", "\(problem)\n\ntinecast keeps its current settings until the file is fixed.")
+            onInvalid: { problem in
+                presentAlert("settings.json has a problem", "\(problem)\n\ntinecast keeps its current settings until the file is fixed.")
             }
         )
         if config == nil { register(Config().hotkey) }
@@ -41,7 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotKey = nil
         hotKey = HotKey(keyCode: combination.keyCode, modifiers: combination.carbonModifiers) { [panel] in panel.toggle() }
         guard hotKey == nil, isNewCombination else { return }
-        alert(
+        presentAlert(
             "\(combination.displayName) is already in use",
             "tinecast opens with \(combination.displayName), but another app or a system shortcut already uses it. Free it in System Settings > Keyboard > Keyboard Shortcuts (Spotlight and Input Sources use Command-Space and Control-Space), or choose another hotkey in settings.json."
         )
@@ -58,17 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 try service.unregister()
             }
         } catch {
-            alert("Launch at login couldn't be changed", error.localizedDescription)
+            presentAlert("Launch at login couldn't be changed", error.localizedDescription)
         }
-    }
-
-    private func alert(_ message: String, _ information: String) {
-        let previousApp = NSWorkspace.shared.frontmostApplication
-        let alert = NSAlert()
-        alert.messageText = message
-        alert.informativeText = information
-        NSApp.activate()
-        alert.runModal()
-        previousApp?.activate()
     }
 }

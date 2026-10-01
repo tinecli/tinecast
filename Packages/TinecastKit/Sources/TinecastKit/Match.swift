@@ -1,14 +1,19 @@
 import Foundation
 
-public func matchScore(query: String, title: String, keywords: [String]) -> Double? {
+public func matchScore(query: String, title: String, keywords: [String], alias: String? = nil) -> Double? {
     let needle = query
         .trimmingCharacters(in: .whitespacesAndNewlines)
         .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
     guard !needle.isEmpty else { return nil }
 
+    let foldedAlias = alias?
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+    if foldedAlias == needle { return 2.0 }
+
     let haystack = title.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
     if haystack == needle { return 1.0 }
-    if haystack.hasPrefix(needle) { return 0.9 }
+    if haystack.hasPrefix(needle) || foldedAlias?.hasPrefix(needle) == true { return 0.9 }
 
     let titleWords = words(in: title).map { $0.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil) }
     if titleWords.indices.contains(where: { titleWords[$0...].joined(separator: " ").hasPrefix(needle) }) { return 0.8 }

@@ -62,3 +62,20 @@ private func items(_ titles: String...) -> [Item] {
 
     #expect(rank(apps, query: "twin").map(\.id) == ["a", "b"])
 }
+
+@Test func exactAliasRanksFirstAboveLearnedExactTitles() {
+    let apps = items("Terminal", "Tower")
+    var frecency = Frecency()
+    for _ in 0..<50 { frecency.record(query: "term", itemID: "Terminal", at: now) }
+    let aliases = ["Tower": " TERM "]
+
+    #expect(rank(apps, query: "term", frecency: frecency, aliases: aliases, now: now).map(\.title) == ["Tower", "Terminal"])
+    #expect(rank(items("term", "Tower"), query: "term", aliases: aliases).map(\.title) == ["Tower", "term"])
+}
+
+@Test func aliasPrefixScoresLikeATitlePrefix() {
+    let apps = items("Codeshot", "Xcode")
+
+    #expect(rank(apps, query: "co", aliases: ["Xcode": "code"]).map(\.title) == ["Codeshot", "Xcode"])
+    #expect(matchScore(query: "co", title: "Xcode", keywords: [], alias: "códe") == matchScore(query: "co", title: "Codeshot", keywords: []))
+}

@@ -29,8 +29,8 @@ struct ResultRow: View {
                 }
             }
             Spacer(minLength: 0)
-            if case .open(let url) = item.action {
-                Text(url.pathExtension == "app" ? "Application" : "File")
+            if let kind {
+                Text(kind)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
@@ -45,6 +45,15 @@ struct ResultRow: View {
             in: .rect(corners: .concentric(minimum: 16))
         )
         .contentShape(.rect)
+    }
+
+    private var kind: String? {
+        switch item.action {
+        case .open(let url): url.pathExtension == "app" ? "Application" : "File"
+        case .copy: nil
+        case .run: "Command"
+        case .system: "System"
+        }
     }
 
     private static let iconCache = NSCache<NSString, NSImage>()

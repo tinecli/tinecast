@@ -44,6 +44,8 @@ struct ActionBar: View {
             url.pathExtension == "app" ? "Open Application" : "Open"
         case .copy:
             "Copy Answer"
+        case .run, .system:
+            "Run"
         }
     }
 }
