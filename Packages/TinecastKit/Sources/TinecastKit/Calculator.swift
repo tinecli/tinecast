@@ -19,7 +19,7 @@ public struct Calculation: Equatable, Sendable {
 }
 
 public func calculate(_ query: String, rates: ExchangeRates?, localCurrency: String?, locale: Locale) -> Calculation? {
-    guard let tokens = try? tokenize(query), !tokens.isEmpty else { return nil }
+    guard let tokens = try? tokenize(query, locale: locale), !tokens.isEmpty else { return nil }
     let allRates = (rates?.rates ?? [:]).merging(["EUR": 1]) { current, _ in current }
     var parser = Parser(tokens: tokens, rates: allRates)
     guard let (operand, conversion) = try? parser.query() else { return nil }
@@ -131,7 +131,7 @@ private let functions: [String: @Sendable (Double) -> Double] = [
     "tan": { tan($0) },
 ]
 
-private func tokenize(_ text: String) throws(CalculationError) -> [Token] {
+private func tokenize(_ text: String, locale: Locale) throws(CalculationError) -> [Token] {
     let characters = Array(text.replacing("−", with: "-"))
     var tokens: [Token] = []
     var index = 0
@@ -154,7 +154,7 @@ private func tokenize(_ text: String) throws(CalculationError) -> [Token] {
                 index += 2
                 while index < characters.count, characters[index].isASCII, characters[index].isNumber { index += 1 }
             }
-            tokens.append(try number(mantissa, exponent: String(characters[(start + mantissa.count)..<index])))
+            tokens.append(try number(mantissa, exponent: String(characters[(start + mantissa.count)..<index]), locale: locale))
         } else if character.isLetter || character == "°" {
             while index < characters.count, characters[index].isLetter || characters[index].isNumber || characters[index] == "°" { index += 1 }
             let word = String(characters[start..<index]).lowercased()
@@ -174,11 +174,13 @@ private func tokenize(_ text: String) throws(CalculationError) -> [Token] {
     return tokens
 }
 
-private func number(_ mantissa: String, exponent: String) throws(CalculationError) -> Token {
-    let separators = mantissa.filter { $0 == "." || $0 == "," }
-    guard separators.count <= 1 else { throw CalculationError() }
-    if let comma = mantissa.firstIndex(of: ","), mantissa[mantissa.index(after: comma)...].count == 3 { throw CalculationError() }
-    let text = mantissa.replacing(",", with: ".")
+private func number(_ mantissa: String, exponent: String, locale: Locale) throws(CalculationError) -> Token {
+    let grouping = locale.groupingSeparator ?? ","
+    let decimal = locale.decimalSeparator ?? "."
+    let groupedPattern = #"\d{1,3}(?:"# + NSRegularExpression.escapedPattern(for: grouping) + #"\d{3})+(?:"# + NSRegularExpression.escapedPattern(for: decimal) + #"\d+)?"#
+    let isGrouped = (try? Regex(groupedPattern)).flatMap { mantissa.wholeMatch(of: $0) } != nil
+    guard isGrouped || mantissa.filter({ $0 == "." || $0 == "," }).count <= 1 else { throw CalculationError() }
+    let text = isGrouped ? mantissa.replacing(grouping, with: "").replacing(decimal, with: ".") : mantissa.replacing(",", with: ".")
     guard let value = Double(text + exponent) else { throw CalculationError() }
     return .number(value, text: text + exponent)
 }

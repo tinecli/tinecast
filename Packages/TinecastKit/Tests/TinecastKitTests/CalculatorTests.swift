@@ -66,9 +66,16 @@ private func result(_ query: String, rates: ExchangeRates? = rates, local: Strin
     #expect(result("3,5 + 1") == "4.5")
     #expect(result("3.5 + 1") == "4.5")
     #expect(result(".5 * 2") == "1")
-    #expect(result("1,000 + 1") == nil)
     #expect(result("1.000,5 + 1") == nil)
     #expect(result("1e3 + 1") == "1,001")
+}
+
+@Test func groupingFollowsTheLocale() {
+    #expect(result("1,000 + 1") == "1,001")
+    #expect(result("100*100,090") == "10,009,000")
+    #expect(result("1,234,567.5 + 0.5") == "1,234,568")
+    #expect(result("1,000 + 1", locale: Locale(identifier: "sv_SE")) == "2")
+    #expect(result("1.000,5 + 1", locale: Locale(identifier: "de_DE")) == "1.001,5")
 }
 
 @Test func failuresGiveNoResult() {
