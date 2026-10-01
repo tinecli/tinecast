@@ -16,6 +16,15 @@ public struct Item: Identifiable, Hashable, Sendable {
         self.icon = icon
         self.action = action
     }
+
+    public var kind: String? {
+        switch action {
+        case .open(let url): url.pathExtension == "app" ? "Application" : "File"
+        case .copy: nil
+        case .run: "Command"
+        case .system: "System"
+        }
+    }
 }
 
 public enum Icon: Hashable, Sendable {

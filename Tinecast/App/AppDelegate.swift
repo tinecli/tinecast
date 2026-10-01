@@ -6,20 +6,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let folder = URL.applicationSupportDirectory.appending(path: "dev.gustaf.tinecast", directoryHint: .isDirectory)
     private static let settingsURL = folder.appending(path: "settings.json")
 
-    private let panel = PanelController(folder: AppDelegate.folder, settingsURL: AppDelegate.settingsURL)
+    let settings: SettingsModel
+    private let panel: PanelController
     private var appsProvider: AppsProvider?
     private var hotKey: HotKey?
     private var hotKeyCombination: KeyCombination?
     private var configWatcher: ConfigWatcher?
     private var config: Config?
 
+    override init() {
+        let settings = SettingsModel(url: Self.settingsURL)
+        self.settings = settings
+        panel = PanelController(folder: Self.folder, settings: settings)
+        super.init()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         try? FileManager.default.createDirectory(at: Self.folder, withIntermediateDirectories: true)
-        appsProvider = AppsProvider { [panel] apps in panel.model.apps = apps }
+        appsProvider = AppsProvider { [panel, settings] apps in
+            panel.model.apps = apps
+            settings.apps = apps
+        }
         configWatcher = ConfigWatcher(
             url: Self.settingsURL,
             onReload: { [weak self] config in self?.apply(config) },
-            onInvalid: { problem in
+            onInvalid: { [settings] problem in
+                settings.reject(problem)
                 presentAlert("settings.json has a problem", "\(problem)\n\ntinecast keeps its current settings until the file is fixed.")
             }
         )
@@ -30,6 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let old = config
         config = new
         panel.model.config = new
+        settings.adopt(new)
         register(new.hotkey)
         if new.launchAtLogin != old?.launchAtLogin { setLaunchAtLogin(new.launchAtLogin) }
     }
@@ -40,10 +53,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotKeyCombination = combination
         hotKey = nil
         hotKey = HotKey(keyCode: combination.keyCode, modifiers: combination.carbonModifiers) { [panel] in panel.toggle() }
+        settings.isHotkeyRegistered = hotKey != nil
         guard hotKey == nil, isNewCombination else { return }
         presentAlert(
             "\(combination.displayName) is already in use",
-            "tinecast opens with \(combination.displayName), but another app or a system shortcut already uses it. Free it in System Settings > Keyboard > Keyboard Shortcuts (Spotlight and Input Sources use Command-Space and Control-Space), or choose another hotkey in settings.json."
+            "tinecast opens with \(combination.displayName), but another app or a system shortcut already uses it. Free it in System Settings > Keyboard > Keyboard Shortcuts (Spotlight and Input Sources use Command-Space and Control-Space), or choose another hotkey in tinecast Settings."
         )
     }
 

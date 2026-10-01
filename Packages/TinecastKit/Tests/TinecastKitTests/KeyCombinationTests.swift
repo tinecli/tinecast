@@ -42,3 +42,17 @@ import TinecastKit
     #expect(String(decoding: encoded, as: UTF8.self) == #"["ctrl+f5"]"#)
     #expect(try JSONDecoder().decode([KeyCombination].self, from: encoded) == [combination])
 }
+
+@Test func showsStandardGlyphsInMenuOrder() {
+    #expect(KeyCombination("ctrl+space")?.glyphs == "⌃Space")
+    #expect(KeyCombination("cmd+shift+opt+ctrl+k")?.glyphs == "⌃⌥⇧⌘K")
+    #expect(KeyCombination("cmd+return")?.glyphs == "⌘↩")
+    #expect(KeyCombination("opt+tab")?.glyphs == "⌥⇥")
+}
+
+@Test func buildsFromARecordedKeyCodeAndModifiers() {
+    #expect(KeyCombination(keyCode: kVK_Space, carbonModifiers: controlKey) == KeyCombination("ctrl+space"))
+    #expect(KeyCombination(keyCode: kVK_ANSI_K, carbonModifiers: cmdKey | shiftKey) == KeyCombination("shift+cmd+k"))
+    #expect(KeyCombination(keyCode: kVK_Space, carbonModifiers: 0) == nil)
+    #expect(KeyCombination(keyCode: kVK_LeftArrow, carbonModifiers: controlKey) == nil)
+}

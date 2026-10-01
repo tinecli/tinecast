@@ -35,6 +35,7 @@ struct LauncherView: View {
     let reveal: (Item) -> Void
     let cancel: () -> Void
     let openSettings: () -> Void
+    let registerOpenSettings: (OpenSettingsAction) -> Void
     let quit: () -> Void
 
     @FocusState private var isSearchFocused: Bool
@@ -42,6 +43,7 @@ struct LauncherView: View {
     @State private var menuHighlight: Int?
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.openSettings) private var openSettingsWindow
 
     private var menuItems: [MoreMenuItem] {
         [
@@ -93,6 +95,7 @@ struct LauncherView: View {
         .animation(model.config.compact ? .launcher : nil, value: resultsHeight > 0)
         .padding(Self.margin)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onAppear { registerOpenSettings(openSettingsWindow) }
         .onChange(of: model.isPresented) { _, isPresented in
             isMenuOpen = false
             menuHighlight = nil

@@ -6,7 +6,7 @@ struct TinecastApp: App {
 
     var body: some Scene {
         Settings {
-            EmptyView()
+            SettingsView(model: appDelegate.settings)
         }
     }
 }

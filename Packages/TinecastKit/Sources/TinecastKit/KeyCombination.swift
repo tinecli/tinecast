@@ -2,12 +2,13 @@ import Carbon.HIToolbox
 import Foundation
 
 public struct KeyCombination: Codable, Equatable, Sendable, CustomStringConvertible {
-    private static let modifiers: [(names: Set<String>, token: String, displayName: String, carbonFlag: Int)] = [
-        (["ctrl", "control"], "ctrl", "Control", controlKey),
-        (["opt", "option", "alt"], "opt", "Option", optionKey),
-        (["shift"], "shift", "Shift", shiftKey),
-        (["cmd", "command"], "cmd", "Command", cmdKey),
+    private static let modifiers: [(names: Set<String>, token: String, displayName: String, glyph: String, carbonFlag: Int)] = [
+        (["ctrl", "control"], "ctrl", "Control", "⌃", controlKey),
+        (["opt", "option", "alt"], "opt", "Option", "⌥", optionKey),
+        (["shift"], "shift", "Shift", "⇧", shiftKey),
+        (["cmd", "command"], "cmd", "Command", "⌘", cmdKey),
     ]
+    private static let keyGlyphs = ["return": "↩", "tab": "⇥"]
 
     private static let keys: [String: (keyCode: Int, displayName: String)] = [
         "space": (kVK_Space, "Space"), "return": (kVK_Return, "Return"), "tab": (kVK_Tab, "Tab"),
@@ -29,6 +30,7 @@ public struct KeyCombination: Codable, Equatable, Sendable, CustomStringConverti
     public let keyCode: Int
     public let carbonModifiers: Int
     public let displayName: String
+    public let glyphs: String
     public let description: String
 
     public init?(_ text: String) {
@@ -42,7 +44,14 @@ public struct KeyCombination: Codable, Equatable, Sendable, CustomStringConverti
         keyCode = key.keyCode
         carbonModifiers = used.reduce(0) { $0 | $1.carbonFlag }
         displayName = (used.map(\.displayName) + [key.displayName]).joined(separator: "-")
+        glyphs = used.map(\.glyph).joined() + (Self.keyGlyphs[keyName] ?? key.displayName)
         description = (used.map(\.token) + [keyName]).joined(separator: "+")
+    }
+
+    public init?(keyCode: Int, carbonModifiers: Int) {
+        guard let keyName = Self.keys.first(where: { $0.value.keyCode == keyCode })?.key else { return nil }
+        let tokens = Self.modifiers.filter { carbonModifiers & $0.carbonFlag != 0 }.map(\.token)
+        self.init((tokens + [keyName]).joined(separator: "+"))
     }
 
     public init(from decoder: any Decoder) throws {

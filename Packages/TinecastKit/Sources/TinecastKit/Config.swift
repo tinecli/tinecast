@@ -37,11 +37,15 @@ public struct Config: Codable, Equatable, Sendable {
         hotkey = try container.decodeIfPresent(KeyCombination.self, forKey: .hotkey) ?? defaults.hotkey
         launchAtLogin = try container.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? defaults.launchAtLogin
         compact = try container.decodeIfPresent(Bool.self, forKey: .compact) ?? defaults.compact
-        reopenTimeout = try container.decodeIfPresent(TimeInterval.self, forKey: .reopenTimeout) ?? defaults.reopenTimeout
+        if (try? container.decodeIfPresent(String.self, forKey: .reopenTimeout)) == "never" {
+            reopenTimeout = .infinity
+        } else {
+            reopenTimeout = try container.decodeIfPresent(TimeInterval.self, forKey: .reopenTimeout) ?? defaults.reopenTimeout
+        }
         fileSearch = try container.decodeIfPresent(FileSearch.self, forKey: .fileSearch) ?? defaults.fileSearch
         historyIgnore = try container.decodeIfPresent(String.self, forKey: .historyIgnore)
-        if let historyIgnore, (try? Regex(historyIgnore)) == nil {
-            throw DecodingError.dataCorruptedError(forKey: .historyIgnore, in: container, debugDescription: "\"\(historyIgnore)\" isn't a valid regular expression.")
+        if let historyIgnoreProblem {
+            throw DecodingError.dataCorruptedError(forKey: .historyIgnore, in: container, debugDescription: historyIgnoreProblem)
         }
         commands = try container.decodeIfPresent([Command].self, forKey: .commands) ?? defaults.commands
         let ids = commands.map(\.id)
@@ -57,12 +61,46 @@ public struct Config: Codable, Equatable, Sendable {
         try container.encode(hotkey, forKey: .hotkey)
         try container.encode(launchAtLogin, forKey: .launchAtLogin)
         try container.encode(compact, forKey: .compact)
-        try container.encode(reopenTimeout, forKey: .reopenTimeout)
+        if reopenTimeout.isInfinite {
+            try container.encode("never", forKey: .reopenTimeout)
+        } else {
+            try container.encode(reopenTimeout, forKey: .reopenTimeout)
+        }
         try container.encode(fileSearch, forKey: .fileSearch)
         try container.encode(historyIgnore, forKey: .historyIgnore)
         try container.encode(commands, forKey: .commands)
         try container.encode(aliases, forKey: .aliases)
         try container.encode(hiddenItems, forKey: .hiddenItems)
+    }
+
+    public var historyIgnoreProblem: String? {
+        guard let historyIgnore, (try? Regex(historyIgnore)) == nil else { return nil }
+        return "\"\(historyIgnore)\" isn't a valid regular expression."
+    }
+
+    public func json() throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try encoder.encode(self)
+    }
+
+    public func keepingValidValues(from saved: Config) -> Config {
+        var valid = self
+        valid.commands = commands.compactMap { command in
+            command.problem == nil ? command : saved.commands.first { $0.id == command.id }
+        }
+        if historyIgnoreProblem != nil { valid.historyIgnore = saved.historyIgnore }
+        return valid
+    }
+
+    public mutating func setAlias(_ alias: String, for id: String) {
+        let trimmed = alias.trimmingCharacters(in: .whitespacesAndNewlines)
+        aliases[id] = trimmed.isEmpty ? nil : trimmed
+    }
+
+    public mutating func setHidden(_ hidden: Bool, for id: String) {
+        hiddenItems.removeAll { $0 == id }
+        if hidden { hiddenItems.append(id) }
     }
 
     public func historyIgnores(_ query: String) -> Bool {

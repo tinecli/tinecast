@@ -16,10 +16,8 @@ final class ConfigWatcher {
         self.onReload = onReload
         self.onInvalid = onInvalid
         if !FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             do {
-                try encoder.encode(Config()).write(to: url, options: .atomic)
+                try Config().json().write(to: url, options: .atomic)
             } catch {
                 Logger(subsystem: "dev.gustaf.tinecast", category: "settings").error("Default settings couldn't be written: \(error.localizedDescription, privacy: .public)")
             }

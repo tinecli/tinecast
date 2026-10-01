@@ -83,7 +83,7 @@ open a URL, run a process, run AppleScript, call a system API.
 - `settings.json` keys: `hotkey`, `launchAtLogin`, `compact`, `reopenTimeout`, `fileSearch`, `historyIgnore`.
   - It's watched and reloads on save.
   - An invalid file keeps the previous settings and shows one alert.
-  - Settings… opens it in the default plain-text editor.
+  - Edited through the Settings window (v1); "Open settings.json" there opens the file for advanced edits.
 
 **Project**
 - Swift only:

@@ -26,6 +26,16 @@ final class RatesProvider {
         guard download == nil else { return }
         if let rates, !rates.isStale(at: .now) { return }
         if let failedAt, Date.now.timeIntervalSince(failedAt) < Self.retryDelay { return }
+        startDownload()
+    }
+
+    func refreshNow() async -> Bool {
+        if download == nil { startDownload() }
+        await download?.value
+        return failedAt == nil
+    }
+
+    private func startDownload() {
         download = Task { [weak self] in
             await self?.fetch()
             self?.download = nil

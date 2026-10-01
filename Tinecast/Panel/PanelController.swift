@@ -1,7 +1,6 @@
 import AppKit
 import SwiftUI
 import TinecastKit
-import UniformTypeIdentifiers
 
 final class PanelController: NSObject, NSWindowDelegate {
     let model: LauncherModel
@@ -10,18 +9,21 @@ final class PanelController: NSObject, NSWindowDelegate {
     private let systemActions = SystemActionRunner()
     private let historyFile: JSONFile<History>
     private let frecencyFile: JSONFile<Frecency>
-    private let settingsURL: URL
     private var previousApp: NSRunningApplication?
+    private var openSettingsWindow: OpenSettingsAction?
 
-    init(folder: URL, settingsURL: URL) {
+    init(folder: URL, settings: SettingsModel) {
         historyFile = JSONFile(url: folder.appending(path: "history.json"))
         frecencyFile = JSONFile(url: folder.appending(path: "ranking.json"))
-        self.settingsURL = settingsURL
         let model = LauncherModel()
         self.model = model
-        ratesProvider = RatesProvider(file: JSONFile(url: folder.appending(path: "rates.json"))) { rates in model.exchangeRates = rates }
+        ratesProvider = RatesProvider(file: JSONFile(url: folder.appending(path: "rates.json"))) { rates in
+            model.exchangeRates = rates
+            settings.exchangeRates = rates
+        }
         super.init()
         model.refreshRates = { [weak ratesProvider] in ratesProvider?.refreshIfStale() }
+        settings.refreshRates = { [weak ratesProvider] in await ratesProvider?.refreshNow() ?? false }
         ratesProvider.refreshIfStale()
         model.history = historyFile.load() ?? History()
         model.frecency = frecencyFile.load() ?? Frecency()
@@ -32,6 +34,7 @@ final class PanelController: NSObject, NSWindowDelegate {
             reveal: { [weak self] item in self?.reveal(item) },
             cancel: { [weak self] in self?.close() },
             openSettings: { [weak self] in self?.openSettings() },
+            registerOpenSettings: { [weak self] action in self?.openSettingsWindow = action },
             quit: { NSApp.terminate(nil) }
         ))
         hostingView.sizingOptions = []
@@ -77,12 +80,8 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     private func openSettings() {
         hide()
-        let workspace = NSWorkspace.shared
-        guard let editor = workspace.urlForApplication(toOpen: .plainText) ?? workspace.urlForApplication(withBundleIdentifier: "com.apple.TextEdit") else {
-            workspace.open(settingsURL)
-            return
-        }
-        workspace.open([settingsURL], withApplicationAt: editor, configuration: NSWorkspace.OpenConfiguration())
+        NSApp.activate()
+        openSettingsWindow?()
     }
 
     private func run(_ item: Item) {
@@ -97,7 +96,12 @@ final class PanelController: NSObject, NSWindowDelegate {
             case .run(let command):
                 previousApp?.activate()
                 guard !command.confirm || presentAlert("Run “\(command.name)”?", confirming: "Run") else { return }
-                launchInBackground("“\(command.name)” failed", "/bin/zsh", ["-l", "-c", command.command])
+                do {
+                    let invocation = try command.invocation()
+                    launchInBackground("“\(command.name)” failed", invocation.executable, invocation.arguments)
+                } catch {
+                    presentAlert("“\(command.name)” failed", error.localizedDescription)
+                }
             case .system(let action):
                 previousApp?.activate()
                 systemActions.perform(action, frontmost: previousApp)

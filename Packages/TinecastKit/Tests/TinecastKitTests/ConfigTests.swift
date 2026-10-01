@@ -126,3 +126,54 @@ private let deployID = "6F1C1E0A-8C1B-4F4C-9E43-2D2B7C1C0F11"
 
     #expect(!unchecked.historyIgnores("(unclosed"))
 }
+
+@Test func neverReopenTimeoutRoundTripsAsAString() throws {
+    var never = Config()
+    never.reopenTimeout = .infinity
+    let text = String(decoding: try never.json(), as: UTF8.self)
+
+    #expect(text.contains(#""reopenTimeout" : "never""#))
+    #expect(try Config(json: never.json()).reopenTimeout == .infinity)
+    #expect(try config(#"{ "reopenTimeout": 0 }"#).reopenTimeout == 0)
+    #expect(problem(#"{ "reopenTimeout": "always" }"#)?.hasPrefix("reopenTimeout: ") == true)
+}
+
+@Test func jsonMatchesThePrettySortedDefaultWrite() throws {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+
+    #expect(try Config().json() == encoder.encode(Config()))
+}
+
+@Test func keepingValidValuesFallsBackToTheSavedVersion() {
+    let saved = Command(id: deployID, name: "Deploy", command: "make deploy")
+    var lastSaved = Config()
+    lastSaved.commands = [saved]
+    lastSaved.historyIgnore = "pass.*"
+    var draft = lastSaved
+    draft.commands = [Command(id: deployID, name: " ", command: "make deploy"), Command(name: "New", command: ""), Command(name: "Ok", command: "ls")]
+    draft.historyIgnore = "(unclosed"
+    draft.compact = true
+
+    let valid = draft.keepingValidValues(from: lastSaved)
+
+    #expect(valid.commands.map(\.name) == ["Deploy", "Ok"])
+    #expect(valid.historyIgnore == "pass.*")
+    #expect(valid.compact)
+}
+
+@Test func aliasAndHiddenEditsTrimAndRemove() {
+    var edited = Config()
+    edited.setAlias("  lk ", for: "system:lockScreen")
+    edited.setHidden(true, for: "/Applications/Chess.app")
+    edited.setHidden(true, for: "/Applications/Chess.app")
+
+    #expect(edited.aliases == ["system:lockScreen": "lk"])
+    #expect(edited.hiddenItems == ["/Applications/Chess.app"])
+
+    edited.setAlias(" ", for: "system:lockScreen")
+    edited.setHidden(false, for: "/Applications/Chess.app")
+
+    #expect(edited.aliases.isEmpty)
+    #expect(edited.hiddenItems.isEmpty)
+}
