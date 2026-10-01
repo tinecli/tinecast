@@ -3,7 +3,7 @@ import TinecastKit
 
 struct GeneralSettings: View {
     private static let reopenTimeouts: [(title: String, seconds: TimeInterval)] = [
-        ("Immediately", 0), ("After 30 seconds", 30), ("After 90 seconds", 90), ("After 5 minutes", 300), ("Never", .infinity),
+        ("Immediately", 0), ("After 30 Seconds", 30), ("After 90 Seconds", 90), ("After 5 Minutes", 300), ("Never", .infinity),
     ]
 
     @Bindable var model: SettingsModel
@@ -11,13 +11,16 @@ struct GeneralSettings: View {
     var body: some View {
         Form {
             Section {
-                LabeledContent("Hotkey") {
+                LabeledContent {
                     ShortcutRecorder(combination: $model.config.hotkey)
+                } label: {
+                    Label { Text("Hotkey") } icon: { Tile(symbol: "keyboard", color: .gray) }
                 }
-                Toggle("Open at login", isOn: $model.config.launchAtLogin)
+                Toggle(isOn: $model.config.launchAtLogin) {
+                    Label { Text("Open at Login") } icon: { Tile(symbol: "power", color: .green) }
+                }
                 Toggle(isOn: $model.config.compact) {
-                    Text("Compact mode")
-                    Text("Shows only the search field until you start typing.")
+                    Label { Text("Compact Mode") } icon: { Tile(symbol: "rectangle.compress.vertical", color: .blue) }
                 }
                 Picker(selection: $model.config.reopenTimeout) {
                     ForEach(Self.reopenTimeouts, id: \.seconds) { option in
@@ -28,39 +31,49 @@ struct GeneralSettings: View {
                             .tag(model.config.reopenTimeout)
                     }
                 } label: {
-                    Text("Clear search")
-                    Text("When the panel reopens after this long, it starts with an empty search.")
+                    Label { Text("Clear Search") } icon: { Tile(symbol: "clock.arrow.circlepath", color: .orange) }
                 }
+            } footer: {
+                Text("Compact Mode shows only the search field until you start typing.")
+                    .foregroundStyle(.secondary)
             }
 
             Section("File Search") {
-                LabeledContent("Search in") {
-                    PathList(title: "Folders to search", noun: "Folder", paths: $model.config.fileSearch.folders)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Folders")
+                    FolderList(title: "Folders", paths: $model.config.fileSearch.folders)
                 }
-                LabeledContent("Exclude") {
-                    PathList(title: "Excluded folders", noun: "Exclusion", paths: $model.config.fileSearch.exclusions)
-                }
-            }
-
-            Section("History") {
-                TextField(text: historyIgnore, prompt: Text("Regular expression")) {
-                    Text("Don't remember")
-                    Text("Searches that fully match this aren't saved to history or ranking.")
-                }
-                .font(.body.monospaced())
-                if let problem = model.config.historyIgnoreProblem {
-                    Label(problem, systemImage: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                        .font(.callout)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Excluded Folders")
+                    FolderList(title: "Excluded Folders", paths: $model.config.fileSearch.exclusions)
                 }
             }
 
             Section {
                 LabeledContent {
-                    Button("Open settings.json", action: model.openFile)
+                    TextField("Ignore Searches", text: historyIgnore, prompt: Text("Regular Expression"))
+                        .labelsHidden()
+                        .font(.body.monospaced())
                 } label: {
-                    Text("Settings file")
-                    Text("Edit every setting as JSON in your default text editor.")
+                    Label { Text("Ignore Searches") } icon: { Tile(symbol: "clock.badge.xmark", color: .purple) }
+                }
+                if let problem = model.config.historyIgnoreProblem {
+                    Label(problem, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                        .font(.callout)
+                }
+            } header: {
+                Text("History")
+            } footer: {
+                Text("Searches that fully match this aren't saved to history or ranking.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                LabeledContent {
+                    Button("Open", action: model.openFile)
+                } label: {
+                    Label { Text("settings.json") } icon: { Tile(symbol: "curlybraces", color: .gray) }
                 }
             }
         }

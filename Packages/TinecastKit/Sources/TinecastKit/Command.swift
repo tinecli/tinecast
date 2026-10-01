@@ -72,7 +72,7 @@ public struct Command: Codable, Hashable, Sendable, Identifiable {
         }
         guard !name.contains("/") else { throw InvocationError("\"\(name)\" isn't a full path. Start it with / or ~/.") }
         guard let executable = Invocation.searchPath.map({ "\($0)/\(name)" }).first(where: isExecutable) else {
-            throw InvocationError("\"\(name)\" wasn't found in \(Invocation.searchPath.joined(separator: ", ")). Use its full path or turn on Run in login shell.")
+            throw InvocationError("\"\(name)\" wasn't found in \(Invocation.searchPath.joined(separator: ", ")). Use its full path or turn on Run in Login Shell.")
         }
         return Invocation(executable: executable, arguments: Array(words.dropFirst()))
     }

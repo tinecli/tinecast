@@ -8,55 +8,71 @@ struct AliasesSettings: View {
     @State private var isAdding = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Table(rows, selection: $selection) {
-                TableColumn("Name") { item in
-                    Label {
-                        Text(item.title)
-                    } icon: {
-                        ItemIcon(icon: item.icon)
-                            .frame(width: 16, height: 16)
-                    }
-                    .lineLimit(1)
-                }
-                TableColumn("Kind") { item in
-                    Text(item.kind ?? "")
-                        .foregroundStyle(.secondary)
-                }
-                .width(90)
-                TableColumn("Alias") { item in
-                    AliasField(model: model, itemID: item.id, label: "Alias for \(item.title)")
-                        .labelsHidden()
-                }
-                .width(120)
-                TableColumn("Hidden") { item in
-                    Toggle("Hide \(item.title)", isOn: hiddenBinding(for: item.id))
-                        .toggleStyle(.checkbox)
-                        .labelsHidden()
-                }
-                .width(50)
+        content
+            .onChange(of: customizedIDs, initial: true) {
+                rowIDs.formUnion(customizedIDs)
             }
-            .accessibilityLabel("Aliases and hidden items")
-            HStack {
+            .sheet(isPresented: $isAdding) {
+                ItemChooser(items: model.items.filter { !rowIDs.contains($0.id) }) { id in
+                    rowIDs.insert(id)
+                    selection = [id]
+                }
+            }
+    }
+
+    @ViewBuilder private var content: some View {
+        if rowIDs.isEmpty && customizedIDs.isEmpty {
+            ContentUnavailableView {
+                Label("No Aliases", systemImage: "character.cursor.ibeam")
+            } description: {
+                Text("Open an app, command or system action by typing its alias, or hide it from search.")
+            } actions: {
                 Button("Add…") { isAdding = true }
-                Button("Remove", action: removeSelection)
-                    .disabled(selection.isEmpty)
-                Spacer()
-                Text("An alias opens its item when typed exactly. Hidden items don't appear in search.")
-                    .font(.callout)
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                table
+                ListControls(addLabel: "Add…", removeLabel: "Remove", add: { isAdding = true }, remove: selection.isEmpty ? nil : { removeSelection() })
+            }
+            .padding(20)
+        }
+    }
+
+    private var table: some View {
+        Table(rows, selection: $selection) {
+            TableColumn("Name") { item in
+                Label {
+                    Text(item.title)
+                } icon: {
+                    if case .symbol(let name) = item.icon {
+                        Tile(symbol: name, color: item.kind == "Command" ? .indigo : .gray, size: 18)
+                    } else {
+                        ItemIcon(icon: item.icon)
+                            .frame(width: 18, height: 18)
+                    }
+                }
+                .lineLimit(1)
+            }
+            TableColumn("Kind") { item in
+                Text(item.kind ?? "")
                     .foregroundStyle(.secondary)
             }
-        }
-        .padding(20)
-        .onChange(of: customizedIDs, initial: true) {
-            rowIDs.formUnion(customizedIDs)
-        }
-        .sheet(isPresented: $isAdding) {
-            ItemChooser(items: model.items.filter { !rowIDs.contains($0.id) }) { id in
-                rowIDs.insert(id)
-                selection = [id]
+            .width(80)
+            TableColumn("Alias") { item in
+                AliasField(model: model, itemID: item.id, label: "Alias for \(item.title)")
+                    .textFieldStyle(.roundedBorder)
+                    .labelsHidden()
             }
+            .width(110)
+            TableColumn("Hidden") { item in
+                Toggle("Hide \(item.title)", isOn: hiddenBinding(for: item.id))
+                    .toggleStyle(.checkbox)
+                    .labelsHidden()
+            }
+            .width(50)
         }
+        .tableStyle(.bordered(alternatesRowBackgrounds: false))
+        .accessibilityLabel("Aliases and hidden items")
     }
 
     private var customizedIDs: Set<String> {
@@ -96,7 +112,7 @@ private struct ItemChooser: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Add an Item")
+            Text("Add Item")
                 .font(.headline)
             TextField("Search", text: $search, prompt: Text("Search apps, commands and system actions"))
                 .textFieldStyle(.roundedBorder)

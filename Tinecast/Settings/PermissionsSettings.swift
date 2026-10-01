@@ -52,11 +52,10 @@ struct PermissionsSettings: View {
 
     var body: some View {
         Form {
-            Section("Privacy & Security") {
+            Section {
                 StatusRow(
                     title: "Accessibility",
-                    systemImage: "accessibility",
-                    detail: "Lets Lock Screen and the media actions send keystrokes.",
+                    tile: ("accessibility", .blue),
                     status: isAccessibilityTrusted ? ("Granted", .ok) : ("Not Granted", .warning)
                 ) {
                     if !isAccessibilityTrusted {
@@ -65,8 +64,7 @@ struct PermissionsSettings: View {
                 }
                 StatusRow(
                     title: "Automation: System Events",
-                    systemImage: "gearshape.2",
-                    detail: "Lets Restart, Shut Down, Log Out and Toggle Dark Mode run.",
+                    tile: ("gearshape.2.fill", .gray),
                     status: systemEvents.status
                 ) {
                     if systemEvents != .granted {
@@ -75,21 +73,24 @@ struct PermissionsSettings: View {
                 }
                 StatusRow(
                     title: "Automation: Finder",
-                    systemImage: "finder",
-                    detail: "Lets Empty Trash and Eject All Disks run.",
+                    tile: ("finder", .cyan),
                     status: finder.status
                 ) {
                     if finder != .granted {
                         Button("Grant Access…") { Task { await requestAutomation(of: finderID, current: finder) } }
                     }
                 }
+            } header: {
+                Text("Privacy & Security")
+            } footer: {
+                Text("System actions such as Lock Screen, Restart and Empty Trash need these.")
+                    .foregroundStyle(.secondary)
             }
 
-            Section("Startup") {
+            Section {
                 StatusRow(
-                    title: "Open at login",
-                    systemImage: "power",
-                    detail: "Opens tinecast when you log in. Turn it on or off in General.",
+                    title: "Login Item",
+                    tile: ("power", .green),
                     status: loginItemStatus
                 ) {
                     if loginItem == .requiresApproval {
@@ -98,19 +99,22 @@ struct PermissionsSettings: View {
                 }
                 StatusRow(
                     title: "Hotkey",
-                    systemImage: "keyboard",
-                    detail: model.isHotkeyRegistered
-                        ? "\(model.config.hotkey.glyphs) opens tinecast from any app."
-                        : "Another app or a system shortcut already uses \(model.config.hotkey.glyphs). Choose another hotkey in General.",
+                    tile: ("keyboard", .gray),
                     status: model.isHotkeyRegistered ? ("Registered", .ok) : ("Unavailable", .warning)
                 ) {}
+            } header: {
+                Text("Startup")
+            } footer: {
+                if !model.isHotkeyRegistered {
+                    Text("Another app or a system shortcut already uses \(model.config.hotkey.glyphs). Choose another hotkey in General.")
+                        .foregroundStyle(.secondary)
+                }
             }
 
-            Section("Data") {
+            Section {
                 StatusRow(
                     title: "Exchange Rates",
-                    systemImage: "eurosign.circle",
-                    detail: ratesDetail,
+                    tile: ("eurosign", .teal),
                     status: ratesStatus
                 ) {
                     if isRefreshingRates {
@@ -121,6 +125,11 @@ struct PermissionsSettings: View {
                     Button("Refresh Now", action: refreshRates)
                         .disabled(isRefreshingRates)
                 }
+            } header: {
+                Text("Data")
+            } footer: {
+                Text(ratesDetail)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -143,7 +152,7 @@ struct PermissionsSettings: View {
     }
 
     private var ratesDetail: String {
-        let failure = ratesRefreshFailed ? " The last update failed; check your internet connection." : ""
+        let failure = ratesRefreshFailed ? " The last update failed." : ""
         guard let rates = model.exchangeRates else { return "Currency conversion uses the European Central Bank's reference rates." + failure }
         let rateDate = (try? Date.ISO8601FormatStyle().year().month().day().parse(rates.date))?.formatted(date: .long, time: .omitted) ?? rates.date
         return "ECB reference rates from \(rateDate), downloaded \(rates.fetchedAt.formatted(.relative(presentation: .named)))." + failure
@@ -187,8 +196,7 @@ struct PermissionsSettings: View {
 
 private struct StatusRow<Actions: View>: View {
     let title: String
-    let systemImage: String
-    let detail: String
+    let tile: (symbol: String, color: Color)
     let status: (title: String, tone: Tone)
     @ViewBuilder let actions: Actions
 
@@ -197,32 +205,24 @@ private struct StatusRow<Actions: View>: View {
             HStack(spacing: 12) {
                 Label {
                     Text(status.title)
+                        .foregroundStyle(.secondary)
                 } icon: {
                     Image(systemName: statusSymbol)
                         .foregroundStyle(statusColor)
                 }
+                .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(title): \(status.title)")
                 actions
             }
         } label: {
-            Label {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                    Text(detail)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            } icon: {
-                Image(systemName: systemImage)
-            }
+            Label { Text(title) } icon: { Tile(symbol: tile.symbol, color: tile.color) }
         }
     }
 
     private var statusSymbol: String {
         if status.tone == .ok { return "checkmark.circle.fill" }
         if status.tone == .warning { return "exclamationmark.triangle.fill" }
-        return "questionmark.circle.fill"
+        return "questionmark.circle"
     }
 
     private var statusColor: Color {
