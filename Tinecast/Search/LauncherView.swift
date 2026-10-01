@@ -80,6 +80,7 @@ struct LauncherView: View {
                 .glassEffectTransition(.materialize)
             }
         }
+        .animation(model.config.compact ? .launcher : nil, value: resultsHeight > 0)
         .padding(Self.margin)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onChange(of: model.isPresented) { _, isPresented in
