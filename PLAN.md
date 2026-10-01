@@ -98,8 +98,6 @@ open a URL, run a process, run AppleScript, call a system API.
 - Confirm on screen:
   - click-away
   - ⌘↵ reveal
-  - history recall
-  - the reopen timeout
   - `historyIgnore`
   - launch at login
 
