@@ -2,15 +2,13 @@ import SwiftUI
 import TinecastKit
 
 struct ActionBar: View {
-    private static let controlHeight: CGFloat = 28
-    private static let edgeInset = LauncherView.cornerRadius - controlHeight / 2
+    static let controlHeight: CGFloat = 28
+    static let edgeInset = LauncherView.cornerRadius - controlHeight / 2
     static let height = controlHeight + 2 * edgeInset
 
     let item: Item?
     let run: (Item) -> Void
     let reveal: (Item) -> Void
-    let openSettings: () -> Void
-    let quit: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
@@ -18,23 +16,6 @@ struct ActionBar: View {
     var body: some View {
         let fill = (colorScheme == .dark ? Color.white : .black).opacity(contrast == .increased ? 0.22 : 0.11)
         HStack {
-            Menu {
-                Button("Settings…", action: openSettings)
-                    .keyboardShortcut(",")
-                Divider()
-                Button("Quit tinecast", action: quit)
-                    .keyboardShortcut("q")
-            } label: {
-                Image(systemName: "ellipsis")
-            }
-            .menuStyle(.button)
-            .buttonStyle(.borderless)
-            .menuIndicator(.hidden)
-            .foregroundStyle(.secondary)
-            .frame(width: Self.controlHeight, height: Self.controlHeight)
-            .background(fill, in: .circle)
-            .contentShape(.circle)
-            .accessibilityLabel("More")
             Spacer()
             if let item {
                 HStack(spacing: 14) {
@@ -53,6 +34,7 @@ struct ActionBar: View {
                 .background(fill, in: .capsule)
             }
         }
+        .frame(height: Self.controlHeight)
         .padding(Self.edgeInset)
     }
 

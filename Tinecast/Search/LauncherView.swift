@@ -38,7 +38,17 @@ struct LauncherView: View {
     let quit: () -> Void
 
     @FocusState private var isSearchFocused: Bool
+    @State private var isMenuOpen = false
+    @State private var menuHighlight: Int?
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var menuItems: [MoreMenuItem] {
+        [
+            MoreMenuItem(title: "Settings…", shortcut: "⌘,", action: openSettings),
+            MoreMenuItem(title: "Quit tinecast", shortcut: "⌘Q", action: quit),
+        ]
+    }
 
     private var resultsHeight: CGFloat {
         if !model.config.compact { return ResultsList.maximumContentHeight }
@@ -58,18 +68,23 @@ struct LauncherView: View {
                             model: model,
                             contentHeight: resultsHeight,
                             run: run,
-                            actionBar: ActionBar(
-                                item: model.selectedItem,
-                                run: run,
-                                reveal: reveal,
-                                openSettings: openSettings,
-                                quit: quit
-                            )
+                            actionBar: ActionBar(item: model.selectedItem, run: run, reveal: reveal)
                         )
                     }
                 }
                 .frame(width: Self.glassWidth)
                 .fixedSize(horizontal: false, vertical: true)
+                .overlay(alignment: .bottomLeading) {
+                    if resultsHeight > 0 {
+                        MoreMenu(
+                            items: menuItems,
+                            isOpen: isMenuOpen,
+                            highlighted: $menuHighlight,
+                            toggle: { setMenu(open: !isMenuOpen) },
+                            activate: activateMenuItem
+                        )
+                    }
+                }
                 .clipShape(.rect(cornerRadius: Self.cornerRadius))
                 .modifier(Surface(shape: .rect(cornerRadius: Self.cornerRadius)))
                 .glassEffectTransition(.materialize)
@@ -79,8 +94,41 @@ struct LauncherView: View {
         .padding(Self.margin)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onChange(of: model.isPresented) { _, isPresented in
+            isMenuOpen = false
+            menuHighlight = nil
             guard isPresented else { return }
             isSearchFocused = true
+        }
+        .onChange(of: model.query) {
+            isMenuOpen = false
+            menuHighlight = nil
+        }
+    }
+
+    private func setMenu(open: Bool) {
+        isSearchFocused = true
+        menuHighlight = nil
+        withAnimation(reduceMotion ? nil : .launcher) { isMenuOpen = open }
+    }
+
+    private func activateMenuItem(_ index: Int) {
+        isMenuOpen = false
+        menuHighlight = nil
+        menuItems[index].action()
+    }
+
+    private func moveMenuHighlight(by offset: Int) {
+        let start = menuHighlight ?? (offset > 0 ? -1 : menuItems.count)
+        menuHighlight = min(max(start + offset, 0), menuItems.count - 1)
+    }
+
+    private func escape() {
+        if isMenuOpen {
+            setMenu(open: false)
+        } else if !model.query.isEmpty {
+            model.edit("")
+        } else {
+            cancel()
         }
     }
 
@@ -110,18 +158,22 @@ struct LauncherView: View {
             .focused($isSearchFocused)
             .onAppear { isSearchFocused = true }
             .onSubmit {
+                if isMenuOpen {
+                    if let menuHighlight { activateMenuItem(menuHighlight) } else { setMenu(open: false) }
+                    return
+                }
                 guard let item = model.selectedItem else { return }
                 run(item)
             }
             .onKeyPress(.upArrow) {
-                model.moveUp()
+                if isMenuOpen { moveMenuHighlight(by: -1) } else { model.moveUp() }
                 return .handled
             }
             .onKeyPress(.downArrow) {
-                model.moveDown()
+                if isMenuOpen { moveMenuHighlight(by: 1) } else { model.moveDown() }
                 return .handled
             }
-            .onExitCommand(perform: cancel)
+            .onExitCommand(perform: escape)
         }
         .font(.title)
         .padding(.horizontal, ResultsList.inset + ResultRow.horizontalPadding)
