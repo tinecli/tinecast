@@ -8,6 +8,7 @@ struct CommandsSettings: View {
 
     var body: some View {
         Form {
+            PaneHeader(pane: .commands)
             Section {
                 if model.config.commands.isEmpty {
                     Text("No commands yet.")

@@ -59,6 +59,16 @@ final class PanelController: NSObject, NSWindowDelegate {
         }
     }
 
+    func clearHistory() {
+        model.history = History()
+        historyFile.save(model.history)
+    }
+
+    func resetRanking() {
+        model.frecency = Frecency()
+        frecencyFile.save(model.frecency)
+    }
+
     func windowDidResignKey(_ notification: Notification) {
         dismiss()
     }

@@ -8,5 +8,7 @@ struct TinecastApp: App {
         Settings {
             SettingsView(model: appDelegate.settings)
         }
+        .windowResizability(.contentMinSize)
+        .defaultSize(width: 860, height: 640)
     }
 }

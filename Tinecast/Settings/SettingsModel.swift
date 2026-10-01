@@ -8,14 +8,24 @@ final class SettingsModel {
     private static let saveDelay = Duration.milliseconds(250)
 
     let url: URL
+    let systemActions = SystemAction.allCases.map(\.item)
     var config = Config() {
-        didSet { scheduleSave() }
+        didSet {
+            if config.commands != oldValue.commands { commandItems = config.commands.map(\.item) }
+            scheduleSave()
+        }
     }
     private(set) var fileProblem: String?
-    var apps = AppCatalog()
+    private(set) var applications: [Item] = []
+    private(set) var commandItems: [Item] = []
     var exchangeRates: ExchangeRates?
     var isHotkeyRegistered = true
+    @ObservationIgnored var apps = AppCatalog() {
+        didSet { applications = apps.alphabetical }
+    }
     @ObservationIgnored var refreshRates: () async -> Bool = { false }
+    @ObservationIgnored var clearHistory: () -> Void = {}
+    @ObservationIgnored var resetRanking: () -> Void = {}
     @ObservationIgnored private var saved: Config?
     @ObservationIgnored private var pendingSave: Task<Void, Never>?
 
@@ -23,8 +33,16 @@ final class SettingsModel {
         self.url = url
     }
 
-    var items: [Item] {
-        apps.alphabetical + config.commands.map(\.item) + SystemAction.allCases.map(\.item)
+    func setAlias(_ alias: String?, for itemID: String) {
+        var updated = config
+        updated.setAlias(alias ?? "", for: itemID)
+        guard updated != config else { return }
+        config = updated
+    }
+
+    func setHidden(_ hidden: Bool, for itemID: String) {
+        guard config.hiddenItems.contains(itemID) != hidden else { return }
+        config.setHidden(hidden, for: itemID)
     }
 
     func adopt(_ loaded: Config) {

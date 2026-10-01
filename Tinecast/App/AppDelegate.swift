@@ -19,6 +19,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.settings = settings
         panel = PanelController(folder: Self.folder, settings: settings)
         super.init()
+        settings.clearHistory = { [panel] in panel.clearHistory() }
+        settings.resetRanking = { [panel] in panel.resetRanking() }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {

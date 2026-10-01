@@ -16,9 +16,32 @@ struct ShortcutRecorder: View {
             Button {
                 if monitor == nil { startRecording() } else { stopRecording() }
             } label: {
-                Text(monitor == nil ? combination.glyphs : "Type Shortcut")
-                    .frame(minWidth: 96)
+                HStack(spacing: 3) {
+                    if monitor == nil {
+                        ForEach(Array(combination.keycaps.enumerated()), id: \.offset) { _, keycap in
+                            Text(keycap)
+                                .frame(minWidth: 14)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .background(.fill.secondary, in: .rect(cornerRadius: 4, style: .continuous))
+                        }
+                    } else {
+                        Text("Type Shortcut")
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                    }
+                }
+                .padding(3)
+                .frame(minWidth: 96)
+                .background(Color(nsColor: .textBackgroundColor), in: .rect(cornerRadius: 6, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(monitor == nil ? AnyShapeStyle(.separator) : AnyShapeStyle(.tint), lineWidth: monitor == nil ? 1 : 2)
+                }
+                .contentShape(.rect)
             }
+            .buttonStyle(.plain)
             .accessibilityLabel("Hotkey")
             .accessibilityValue(monitor == nil ? combination.displayName : "Recording")
             .accessibilityHint(monitor == nil ? "Press to record a new hotkey." : "Press a key combination with at least one modifier, or Escape to cancel.")

@@ -30,6 +30,7 @@ public struct KeyCombination: Codable, Equatable, Sendable, CustomStringConverti
     public let keyCode: Int
     public let carbonModifiers: Int
     public let displayName: String
+    public let keycaps: [String]
     public let glyphs: String
     public let description: String
 
@@ -44,7 +45,8 @@ public struct KeyCombination: Codable, Equatable, Sendable, CustomStringConverti
         keyCode = key.keyCode
         carbonModifiers = used.reduce(0) { $0 | $1.carbonFlag }
         displayName = (used.map(\.displayName) + [key.displayName]).joined(separator: "-")
-        glyphs = used.map(\.glyph).joined() + (Self.keyGlyphs[keyName] ?? key.displayName)
+        keycaps = used.map(\.glyph) + [Self.keyGlyphs[keyName] ?? key.displayName]
+        glyphs = keycaps.joined()
         description = (used.map(\.token) + [keyName]).joined(separator: "+")
     }
 

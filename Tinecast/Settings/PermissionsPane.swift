@@ -7,23 +7,10 @@ private let finderID = "com.apple.finder"
 private let accessibilitySettings = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
 private let automationSettings = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation")!
 
-private struct Status {
-    static let allowed = Status(title: "Allowed", symbol: "checkmark.circle.fill", tint: .green)
-    static let notAllowed = Status(title: "Not Allowed")
-    static let notSetUp = Status(title: "Not Set Up")
-    static let on = Status(title: "On", symbol: "checkmark.circle.fill", tint: .green)
-    static let off = Status(title: "Off")
-    static let needsApproval = Status(title: "Needs Approval", symbol: "exclamationmark.triangle.fill", tint: .orange)
+private enum PermissionStatus {
+    case allowed, notAllowed, notSetUp, on, off, needsApproval
 
-    let title: String
-    var symbol: String?
-    var tint = Color.secondary
-}
-
-private enum Grant {
-    case allowed, notAllowed, notSetUp
-
-    init(_ status: OSStatus) {
+    init(automation status: OSStatus) {
         if status == noErr {
             self = .allowed
         } else if status == OSStatus(errAEEventNotPermitted) {
@@ -33,10 +20,25 @@ private enum Grant {
         }
     }
 
-    var status: Status {
-        if self == .allowed { return .allowed }
-        if self == .notAllowed { return .notAllowed }
-        return .notSetUp
+    init(loginItem status: SMAppService.Status) {
+        if status == .enabled {
+            self = .on
+        } else if status == .requiresApproval {
+            self = .needsApproval
+        } else {
+            self = .off
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .allowed: "Allowed"
+        case .notAllowed: "Not Allowed"
+        case .notSetUp: "Not Set Up"
+        case .on: "On"
+        case .off: "Off"
+        case .needsApproval: "Needs Approval"
+        }
     }
 }
 
@@ -49,34 +51,35 @@ private func automationPermission(for bundleID: String, asking: Bool) async -> O
     return AEDeterminePermissionToAutomateTarget(&target, typeWildCard, typeWildCard, asking)
 }
 
-struct PermissionsSettings: View {
-    @State private var isAccessibilityTrusted = AXIsProcessTrusted()
-    @State private var systemEvents = Grant.notSetUp
-    @State private var finder = Grant.notSetUp
-    @State private var loginItem = SMAppService.mainApp.status
+struct PermissionsPane: View {
+    @State private var accessibility: PermissionStatus = AXIsProcessTrusted() ? .allowed : .notAllowed
+    @State private var systemEvents: PermissionStatus?
+    @State private var finder: PermissionStatus?
+    @State private var loginItem = PermissionStatus(loginItem: SMAppService.mainApp.status)
 
     var body: some View {
         Form {
+            PaneHeader(pane: .permissions)
             Section {
-                PermissionRow(title: "Accessibility", reason: "Needed for Lock Screen.", status: isAccessibilityTrusted ? .allowed : .notAllowed) {
-                    if !isAccessibilityTrusted {
+                PermissionRow(title: "Accessibility", reason: "Lock Screen and media keys.", status: accessibility) {
+                    if accessibility != .allowed {
                         Button("Allow…", action: requestAccessibility)
                     }
                 }
             }
             Section {
-                PermissionRow(title: "Automation: System Events", reason: "For Restart, Shut Down and Log Out.", status: systemEvents.status) {
-                    automationButton(for: systemEventsID, current: systemEvents)
+                PermissionRow(title: "Automation: System Events", reason: "Restart, Shut Down, Log Out and Dark Mode.", status: systemEvents) {
+                    automationButton(for: systemEventsID, status: systemEvents)
                 }
             }
             Section {
-                PermissionRow(title: "Automation: Finder", reason: "For Empty Trash and Eject All Disks.", status: finder.status) {
-                    automationButton(for: finderID, current: finder)
+                PermissionRow(title: "Automation: Finder", reason: "Trash and Eject.", status: finder) {
+                    automationButton(for: finderID, status: finder)
                 }
             }
             Section {
-                PermissionRow(title: "Open at Login", reason: "Starts tinecast when you log in.", status: loginStatus) {
-                    if loginItem == .requiresApproval {
+                PermissionRow(title: "Open at Login", reason: "Starts tinecast when you log in.", status: loginItem) {
+                    if loginItem == .needsApproval {
                         Button("Open System Settings…") { SMAppService.openSystemSettingsLoginItems() }
                     }
                 }
@@ -89,25 +92,21 @@ struct PermissionsSettings: View {
         }
     }
 
-    private var loginStatus: Status {
-        if loginItem == .enabled { return .on }
-        if loginItem == .requiresApproval { return .needsApproval }
-        return .off
-    }
-
-    @ViewBuilder private func automationButton(for bundleID: String, current: Grant) -> some View {
-        if current == .notSetUp {
+    @ViewBuilder private func automationButton(for bundleID: String, status: PermissionStatus?) -> some View {
+        if status == .notSetUp {
             Button("Allow…") { Task { await requestAutomation(of: bundleID) } }
-        } else if current == .notAllowed {
+        } else if status == .notAllowed {
             Button("Open System Settings…") { NSWorkspace.shared.open(automationSettings) }
         }
     }
 
     private func refresh() async {
-        isAccessibilityTrusted = AXIsProcessTrusted()
-        loginItem = SMAppService.mainApp.status
-        systemEvents = Grant(await automationPermission(for: systemEventsID, asking: false))
-        finder = Grant(await automationPermission(for: finderID, asking: false))
+        accessibility = AXIsProcessTrusted() ? .allowed : .notAllowed
+        loginItem = PermissionStatus(loginItem: SMAppService.mainApp.status)
+        async let systemEventsStatus = automationPermission(for: systemEventsID, asking: false)
+        async let finderStatus = automationPermission(for: finderID, asking: false)
+        systemEvents = PermissionStatus(automation: await systemEventsStatus)
+        finder = PermissionStatus(automation: await finderStatus)
     }
 
     private func requestAccessibility() {
@@ -130,24 +129,23 @@ struct PermissionsSettings: View {
 private struct PermissionRow<Action: View>: View {
     let title: String
     let reason: String
-    let status: Status
+    let status: PermissionStatus?
     @ViewBuilder let action: Action
 
     var body: some View {
         LabeledContent {
             HStack(spacing: 12) {
                 action
-                Label {
-                    Text(status.title)
-                } icon: {
-                    Image(systemName: status.symbol ?? "circle")
-                        .foregroundStyle(status.tint)
-                        .opacity(status.symbol == nil ? 0 : 1)
+                HStack(spacing: 4) {
+                    if status == .allowed || status == .on {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .accessibilityHidden(true)
+                    }
+                    Text(status?.title ?? "")
+                        .foregroundStyle(status == .needsApproval ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
                 }
-                .foregroundStyle(.secondary)
-                .frame(minWidth: 124, alignment: .leading)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(status.title)
+                .frame(width: 120, alignment: .trailing)
             }
             .lineLimit(1)
             .fixedSize()
@@ -155,6 +153,5 @@ private struct PermissionRow<Action: View>: View {
             Text(title)
             Text(reason)
         }
-        .lineLimit(1)
     }
 }

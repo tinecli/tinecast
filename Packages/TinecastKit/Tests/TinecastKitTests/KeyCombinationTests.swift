@@ -56,3 +56,9 @@ import TinecastKit
     #expect(KeyCombination(keyCode: kVK_Space, carbonModifiers: 0) == nil)
     #expect(KeyCombination(keyCode: kVK_LeftArrow, carbonModifiers: controlKey) == nil)
 }
+
+@Test func splitsIntoOneKeycapPerModifierAndKey() {
+    #expect(KeyCombination("cmd+shift+f12")?.keycaps == ["⇧", "⌘", "F12"])
+    #expect(KeyCombination("ctrl+space")?.keycaps == ["⌃", "Space"])
+    #expect(KeyCombination("opt+return")?.keycaps == ["⌥", "↩"])
+}
