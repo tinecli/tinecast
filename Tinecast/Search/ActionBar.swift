@@ -31,7 +31,7 @@ struct ActionBar: View {
                 .foregroundStyle(.secondary)
                 .frame(width: Self.controlHeight, height: Self.controlHeight)
                 .contentShape(.circle)
-                .surface(material, in: .circle)
+                .modifier(Surface(material: material, shape: .circle))
                 .glassEffectTransition(.materialize)
                 .accessibilityLabel("More")
                 Spacer()
@@ -47,7 +47,7 @@ struct ActionBar: View {
                     .buttonStyle(.plain)
                     .padding(.horizontal, 12)
                     .frame(height: Self.controlHeight)
-                    .surface(material, in: .capsule)
+                    .modifier(Surface(material: material, shape: .capsule))
                     .glassEffectTransition(.materialize)
                 }
             }

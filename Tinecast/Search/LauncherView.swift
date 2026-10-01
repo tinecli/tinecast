@@ -5,14 +5,23 @@ extension Animation {
     static let launcher = Animation.smooth(duration: 0.18)
 }
 
-extension View {
-    func surface(_ material: Config.Material, in shape: some Shape) -> some View {
-        background {
-            if material == .frosted {
-                shape.fill(.thickMaterial).shadow(radius: 12, y: 4)
+struct Surface<S: Shape>: ViewModifier {
+    let material: Config.Material
+    let shape: S
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        content
+            .environment(\.colorScheme, colorScheme)
+            .environment(\.appearsActive, true)
+            .environment(\.backgroundMaterial, nil)
+            .background {
+                if material == .frosted {
+                    shape.fill(.thickMaterial).shadow(radius: 12, y: 4)
+                }
             }
-        }
-        .glassEffect(material == .glass ? .regular : .identity, in: shape)
+            .glassEffect(material == .glass ? .regular : .identity, in: shape)
     }
 }
 
@@ -34,6 +43,7 @@ struct LauncherView: View {
     let quit: () -> Void
 
     @FocusState private var isSearchFocused: Bool
+    @Environment(\.colorScheme) private var colorScheme
 
     private var resultsHeight: CGFloat {
         if model.showsNoResults { return ResultsList.rowHeight }
@@ -55,7 +65,7 @@ struct LauncherView: View {
                 .frame(width: Self.glassWidth)
                 .fixedSize(horizontal: false, vertical: true)
                 .clipShape(.rect(cornerRadius: Self.cornerRadius))
-                .surface(model.config.material, in: .rect(cornerRadius: Self.cornerRadius))
+                .modifier(Surface(material: model.config.material, shape: .rect(cornerRadius: Self.cornerRadius)))
                 .glassEffectTransition(.materialize)
             }
         }
@@ -78,7 +88,7 @@ struct LauncherView: View {
     private var searchBar: some View {
         HStack(spacing: ResultRow.iconSpacing) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.55) : Color.black.opacity(0.5))
                 .frame(width: ResultRow.iconSize)
                 .accessibilityHidden(true)
             TextField(

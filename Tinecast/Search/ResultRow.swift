@@ -9,6 +9,9 @@ struct ResultRow: View {
     let item: Item
     let isSelected: Bool
 
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var contrast
+
     var body: some View {
         HStack(spacing: Self.iconSpacing) {
             icon
@@ -33,7 +36,12 @@ struct ResultRow: View {
         }
         .padding(.horizontal, Self.horizontalPadding)
         .frame(maxHeight: .infinity)
-        .background(.fill.opacity(isSelected ? 1 : 0), in: .rect(corners: .concentric(minimum: 16)))
+        .background(
+            (colorScheme == .dark ? Color.white : .black)
+                .opacity(contrast == .increased ? 0.22 : 0.11)
+                .opacity(isSelected ? 1 : 0),
+            in: .rect(corners: .concentric(minimum: 16))
+        )
         .contentShape(.rect)
     }
 
