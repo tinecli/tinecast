@@ -49,7 +49,7 @@ struct CalculatorCard: View {
                 .lineLimit(1)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 2)
-                .background(fill, in: .capsule)
+                .background(fill, in: .rect(cornerRadius: 6))
         }
         .frame(maxWidth: .infinity)
     }
