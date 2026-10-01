@@ -6,7 +6,6 @@ extension Animation {
 }
 
 struct Surface<S: Shape>: ViewModifier {
-    let material: Config.Material
     let shape: S
 
     @Environment(\.colorScheme) private var colorScheme
@@ -16,12 +15,7 @@ struct Surface<S: Shape>: ViewModifier {
             .environment(\.colorScheme, colorScheme)
             .environment(\.appearsActive, true)
             .environment(\.backgroundMaterial, nil)
-            .background {
-                if material == .frosted {
-                    shape.fill(.thickMaterial).shadow(radius: 12, y: 4)
-                }
-            }
-            .glassEffect(material == .glass ? .regular : .identity, in: shape)
+            .glassEffect(.regular, in: shape)
     }
 }
 
@@ -75,7 +69,7 @@ struct LauncherView: View {
                 .frame(width: Self.glassWidth)
                 .fixedSize(horizontal: false, vertical: true)
                 .clipShape(.rect(cornerRadius: Self.cornerRadius))
-                .modifier(Surface(material: model.config.material, shape: .rect(cornerRadius: Self.cornerRadius)))
+                .modifier(Surface(shape: .rect(cornerRadius: Self.cornerRadius)))
                 .glassEffectTransition(.materialize)
             }
         }
