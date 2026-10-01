@@ -57,7 +57,7 @@ struct ResultsList: View {
         Text(title)
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(.secondary)
-            .padding(.leading, ResultRow.horizontalPadding + ResultRow.iconSize + ResultRow.iconSpacing)
+            .padding(.leading, ResultRow.horizontalPadding)
             .padding(.bottom, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: Self.headerHeight, alignment: .bottom)
