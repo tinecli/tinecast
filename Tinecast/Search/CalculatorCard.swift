@@ -28,6 +28,7 @@ struct CalculatorCard: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+                    .padding(.top, 6)
             }
         }
         .padding(.horizontal, ResultRow.horizontalPadding)
