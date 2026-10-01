@@ -69,7 +69,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     private func openSettings() {
-        dismiss()
+        hide()
         let workspace = NSWorkspace.shared
         guard let editor = workspace.urlForApplication(toOpen: .plainText) ?? workspace.urlForApplication(withBundleIdentifier: "com.apple.TextEdit") else {
             workspace.open(settingsURL)
@@ -82,7 +82,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         perform(item) { action in
             switch action {
             case .open(let url):
-                NSWorkspace.shared.open(url)
+                NSWorkspace.shared.open(url, configuration: NSWorkspace.OpenConfiguration())
             }
         }
     }
@@ -97,9 +97,9 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     private func perform(_ item: Item, _ body: (TinecastKit.Action) -> Void) {
-        remember(item)
-        dismiss()
+        hide()
         body(item.action)
+        remember(item)
     }
 
     private func remember(_ item: Item) {
@@ -108,6 +108,11 @@ final class PanelController: NSObject, NSWindowDelegate {
         model.record(item)
         if model.history != history { historyFile.save(model.history) }
         if model.frecency != frecency { frecencyFile.save(model.frecency) }
+    }
+
+    private func hide() {
+        model.dismiss()
+        panel.orderOut(nil)
     }
 
     private func dismiss() {

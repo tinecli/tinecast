@@ -2,7 +2,7 @@ import SwiftUI
 import TinecastKit
 
 extension Animation {
-    static let launcher = Animation.smooth(duration: 0.18)
+    static let launcher = Animation.smooth(duration: 0.12)
 }
 
 struct Surface<S: Shape>: ViewModifier {
@@ -33,7 +33,7 @@ struct LauncherView: View {
     )
     private static let glassWidth: CGFloat = 680
     private static let barHeight: CGFloat = 56
-    private static let cornerRadius: CGFloat = 24
+    static let cornerRadius: CGFloat = 24
 
     let model: LauncherModel
     let run: (Item) -> Void
@@ -59,7 +59,18 @@ struct LauncherView: View {
                     searchBar
                     if resultsHeight > 0 {
                         Divider()
-                        ResultsList(model: model, contentHeight: resultsHeight, run: run)
+                        ResultsList(
+                            model: model,
+                            contentHeight: resultsHeight,
+                            run: run,
+                            actionBar: ActionBar(
+                                item: model.selectedItem,
+                                run: run,
+                                reveal: reveal,
+                                openSettings: openSettings,
+                                quit: quit
+                            )
+                        )
                     }
                 }
                 .frame(width: Self.glassWidth)
@@ -67,18 +78,6 @@ struct LauncherView: View {
                 .clipShape(.rect(cornerRadius: Self.cornerRadius))
                 .modifier(Surface(material: model.config.material, shape: .rect(cornerRadius: Self.cornerRadius)))
                 .glassEffectTransition(.materialize)
-            }
-        }
-        .overlay(alignment: .bottom) {
-            if model.isPresented && resultsHeight > 0 {
-                ActionBar(
-                    item: model.selectedItem,
-                    material: model.config.material,
-                    run: run,
-                    reveal: reveal,
-                    openSettings: openSettings,
-                    quit: quit
-                )
             }
         }
         .padding(Self.margin)

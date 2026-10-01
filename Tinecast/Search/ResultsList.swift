@@ -12,6 +12,7 @@ struct ResultsList: View {
     let model: LauncherModel
     let contentHeight: CGFloat
     let run: (Item) -> Void
+    let actionBar: ActionBar
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -35,9 +36,7 @@ struct ResultsList: View {
                 .padding(Self.inset)
             }
             .scrollIndicators(.never)
-            .safeAreaBar(edge: .bottom) {
-                Color.clear.frame(height: ActionBar.height)
-            }
+            .safeAreaBar(edge: .bottom) { actionBar }
             .scrollEdgeEffectStyle(.soft, for: .bottom)
             .frame(height: contentHeight + Self.inset * 2 + ActionBar.height)
             .accessibilityElement(children: .contain)
