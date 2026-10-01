@@ -1,35 +1,43 @@
 import ApplicationServices
 import ServiceManagement
 import SwiftUI
-import TinecastKit
 
 private let systemEventsID = "com.apple.systemevents"
 private let finderID = "com.apple.finder"
 private let accessibilitySettings = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
 private let automationSettings = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation")!
 
+private struct Status {
+    static let allowed = Status(title: "Allowed", symbol: "checkmark.circle.fill", tint: .green)
+    static let notAllowed = Status(title: "Not Allowed")
+    static let notSetUp = Status(title: "Not Set Up")
+    static let on = Status(title: "On", symbol: "checkmark.circle.fill", tint: .green)
+    static let off = Status(title: "Off")
+    static let needsApproval = Status(title: "Needs Approval", symbol: "exclamationmark.triangle.fill", tint: .orange)
+
+    let title: String
+    var symbol: String?
+    var tint = Color.secondary
+}
+
 private enum Grant {
-    case granted, notGranted, notDetermined
+    case allowed, notAllowed, notSetUp
 
     init(_ status: OSStatus) {
         if status == noErr {
-            self = .granted
+            self = .allowed
         } else if status == OSStatus(errAEEventNotPermitted) {
-            self = .notGranted
+            self = .notAllowed
         } else {
-            self = .notDetermined
+            self = .notSetUp
         }
     }
 
-    var status: (title: String, tone: Tone) {
-        if self == .granted { return ("Granted", .ok) }
-        if self == .notGranted { return ("Not Granted", .warning) }
-        return ("Not Determined", .neutral)
+    var status: Status {
+        if self == .allowed { return .allowed }
+        if self == .notAllowed { return .notAllowed }
+        return .notSetUp
     }
-}
-
-private enum Tone {
-    case ok, warning, neutral
 }
 
 @concurrent
@@ -42,94 +50,36 @@ private func automationPermission(for bundleID: String, asking: Bool) async -> O
 }
 
 struct PermissionsSettings: View {
-    let model: SettingsModel
     @State private var isAccessibilityTrusted = AXIsProcessTrusted()
-    @State private var systemEvents = Grant.notDetermined
-    @State private var finder = Grant.notDetermined
+    @State private var systemEvents = Grant.notSetUp
+    @State private var finder = Grant.notSetUp
     @State private var loginItem = SMAppService.mainApp.status
-    @State private var isRefreshingRates = false
-    @State private var ratesRefreshFailed = false
 
     var body: some View {
         Form {
             Section {
-                StatusRow(
-                    title: "Accessibility",
-                    tile: ("accessibility", .blue),
-                    status: isAccessibilityTrusted ? ("Granted", .ok) : ("Not Granted", .warning)
-                ) {
+                PermissionRow(title: "Accessibility", reason: "Needed for Lock Screen.", status: isAccessibilityTrusted ? .allowed : .notAllowed) {
                     if !isAccessibilityTrusted {
-                        Button("Grant Access…", action: requestAccessibility)
+                        Button("Allow…", action: requestAccessibility)
                     }
                 }
-                StatusRow(
-                    title: "Automation: System Events",
-                    tile: ("gearshape.2.fill", .gray),
-                    status: systemEvents.status
-                ) {
-                    if systemEvents != .granted {
-                        Button("Grant Access…") { Task { await requestAutomation(of: systemEventsID, current: systemEvents) } }
-                    }
-                }
-                StatusRow(
-                    title: "Automation: Finder",
-                    tile: ("finder", .cyan),
-                    status: finder.status
-                ) {
-                    if finder != .granted {
-                        Button("Grant Access…") { Task { await requestAutomation(of: finderID, current: finder) } }
-                    }
-                }
-            } header: {
-                Text("Privacy & Security")
-            } footer: {
-                Text("System actions such as Lock Screen, Restart and Empty Trash need these.")
-                    .foregroundStyle(.secondary)
             }
-
             Section {
-                StatusRow(
-                    title: "Login Item",
-                    tile: ("power", .green),
-                    status: loginItemStatus
-                ) {
+                PermissionRow(title: "Automation: System Events", reason: "For Restart, Shut Down and Log Out.", status: systemEvents.status) {
+                    automationButton(for: systemEventsID, current: systemEvents)
+                }
+            }
+            Section {
+                PermissionRow(title: "Automation: Finder", reason: "For Empty Trash and Eject All Disks.", status: finder.status) {
+                    automationButton(for: finderID, current: finder)
+                }
+            }
+            Section {
+                PermissionRow(title: "Open at Login", reason: "Starts tinecast when you log in.", status: loginStatus) {
                     if loginItem == .requiresApproval {
-                        Button("Open Login Items…") { SMAppService.openSystemSettingsLoginItems() }
+                        Button("Open System Settings…") { SMAppService.openSystemSettingsLoginItems() }
                     }
                 }
-                StatusRow(
-                    title: "Hotkey",
-                    tile: ("keyboard", .gray),
-                    status: model.isHotkeyRegistered ? ("Registered", .ok) : ("Unavailable", .warning)
-                ) {}
-            } header: {
-                Text("Startup")
-            } footer: {
-                if !model.isHotkeyRegistered {
-                    Text("Another app or a system shortcut already uses \(model.config.hotkey.glyphs). Choose another hotkey in General.")
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Section {
-                StatusRow(
-                    title: "Exchange Rates",
-                    tile: ("eurosign", .teal),
-                    status: ratesStatus
-                ) {
-                    if isRefreshingRates {
-                        ProgressView()
-                            .controlSize(.small)
-                            .accessibilityLabel("Refreshing")
-                    }
-                    Button("Refresh Now", action: refreshRates)
-                        .disabled(isRefreshingRates)
-                }
-            } header: {
-                Text("Data")
-            } footer: {
-                Text(ratesDetail)
-                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -139,23 +89,18 @@ struct PermissionsSettings: View {
         }
     }
 
-    private var loginItemStatus: (title: String, tone: Tone) {
-        if loginItem == .enabled { return ("Enabled", .ok) }
-        if loginItem == .requiresApproval { return ("Requires Approval", .warning) }
-        if loginItem == .notRegistered { return ("Not Registered", .neutral) }
-        return ("Not Found", .warning)
+    private var loginStatus: Status {
+        if loginItem == .enabled { return .on }
+        if loginItem == .requiresApproval { return .needsApproval }
+        return .off
     }
 
-    private var ratesStatus: (title: String, tone: Tone) {
-        guard let rates = model.exchangeRates else { return ("Not Downloaded", .warning) }
-        return rates.isStale(at: .now) ? ("Out of Date", .warning) : ("Up to Date", .ok)
-    }
-
-    private var ratesDetail: String {
-        let failure = ratesRefreshFailed ? " The last update failed." : ""
-        guard let rates = model.exchangeRates else { return "Currency conversion uses the European Central Bank's reference rates." + failure }
-        let rateDate = (try? Date.ISO8601FormatStyle().year().month().day().parse(rates.date))?.formatted(date: .long, time: .omitted) ?? rates.date
-        return "ECB reference rates from \(rateDate), downloaded \(rates.fetchedAt.formatted(.relative(presentation: .named)))." + failure
+    @ViewBuilder private func automationButton(for bundleID: String, current: Grant) -> some View {
+        if current == .notSetUp {
+            Button("Allow…") { Task { await requestAutomation(of: bundleID) } }
+        } else if current == .notAllowed {
+            Button("Open System Settings…") { NSWorkspace.shared.open(automationSettings) }
+        }
     }
 
     private func refresh() async {
@@ -170,11 +115,7 @@ struct PermissionsSettings: View {
         NSWorkspace.shared.open(accessibilitySettings)
     }
 
-    private func requestAutomation(of bundleID: String, current: Grant) async {
-        guard current == .notDetermined else {
-            NSWorkspace.shared.open(automationSettings)
-            return
-        }
+    private func requestAutomation(of bundleID: String) async {
         if NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).isEmpty,
            let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
             let configuration = NSWorkspace.OpenConfiguration()
@@ -184,50 +125,36 @@ struct PermissionsSettings: View {
         _ = await automationPermission(for: bundleID, asking: true)
         await refresh()
     }
-
-    private func refreshRates() {
-        isRefreshingRates = true
-        Task {
-            ratesRefreshFailed = !(await model.refreshRates())
-            isRefreshingRates = false
-        }
-    }
 }
 
-private struct StatusRow<Actions: View>: View {
+private struct PermissionRow<Action: View>: View {
     let title: String
-    let tile: (symbol: String, color: Color)
-    let status: (title: String, tone: Tone)
-    @ViewBuilder let actions: Actions
+    let reason: String
+    let status: Status
+    @ViewBuilder let action: Action
 
     var body: some View {
         LabeledContent {
             HStack(spacing: 12) {
+                action
                 Label {
                     Text(status.title)
-                        .foregroundStyle(.secondary)
                 } icon: {
-                    Image(systemName: statusSymbol)
-                        .foregroundStyle(statusColor)
+                    Image(systemName: status.symbol ?? "circle")
+                        .foregroundStyle(status.tint)
+                        .opacity(status.symbol == nil ? 0 : 1)
                 }
+                .foregroundStyle(.secondary)
+                .frame(minWidth: 124, alignment: .leading)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(title): \(status.title)")
-                actions
+                .accessibilityLabel(status.title)
             }
+            .lineLimit(1)
+            .fixedSize()
         } label: {
-            Label { Text(title) } icon: { Tile(symbol: tile.symbol, color: tile.color) }
+            Text(title)
+            Text(reason)
         }
-    }
-
-    private var statusSymbol: String {
-        if status.tone == .ok { return "checkmark.circle.fill" }
-        if status.tone == .warning { return "exclamationmark.triangle.fill" }
-        return "questionmark.circle"
-    }
-
-    private var statusColor: Color {
-        if status.tone == .ok { return .green }
-        if status.tone == .warning { return .orange }
-        return .secondary
+        .lineLimit(1)
     }
 }

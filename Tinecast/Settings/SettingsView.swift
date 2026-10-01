@@ -2,18 +2,11 @@ import SwiftUI
 
 private enum Pane: String, CaseIterable, Identifiable {
     case general = "General"
+    case launcher = "Launcher"
     case commands = "Commands"
-    case aliases = "Aliases"
     case permissions = "Permissions"
 
     var id: Self { self }
-
-    var tile: (symbol: String, color: Color) {
-        if self == .general { return ("gearshape.fill", .gray) }
-        if self == .commands { return ("terminal.fill", Color(white: 0.2)) }
-        if self == .aliases { return ("character.cursor.ibeam", .indigo) }
-        return ("hand.raised.fill", .blue)
-    }
 }
 
 struct SettingsView: View {
@@ -22,13 +15,11 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationSplitView(columnVisibility: .constant(.all)) {
-            List(selection: $pane) {
-                ForEach(Pane.allCases) { pane in
-                    Label { Text(pane.rawValue) } icon: { Tile(symbol: pane.tile.symbol, color: pane.tile.color) }
-                }
+            List(Pane.allCases, selection: $pane) { pane in
+                Text(pane.rawValue)
             }
             .toolbar(removing: .sidebarToggle)
-            .navigationSplitViewColumnWidth(200)
+            .navigationSplitViewColumnWidth(180)
         } detail: {
             detail
                 .navigationTitle(pane.rawValue)
@@ -49,18 +40,18 @@ struct SettingsView: View {
                     }
                 }
         }
-        .frame(width: 715, height: 600)
+        .frame(width: 720, height: 560)
     }
 
     @ViewBuilder private var detail: some View {
         if pane == .general {
             GeneralSettings(model: model)
+        } else if pane == .launcher {
+            LauncherSettings(model: model)
         } else if pane == .commands {
             CommandsSettings(model: model)
-        } else if pane == .aliases {
-            AliasesSettings(model: model)
         } else {
-            PermissionsSettings(model: model)
+            PermissionsSettings()
         }
     }
 }

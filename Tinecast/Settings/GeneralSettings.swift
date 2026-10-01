@@ -3,39 +3,38 @@ import TinecastKit
 
 struct GeneralSettings: View {
     private static let reopenTimeouts: [(title: String, seconds: TimeInterval)] = [
-        ("Immediately", 0), ("After 30 Seconds", 30), ("After 90 Seconds", 90), ("After 5 Minutes", 300), ("Never", .infinity),
+        ("Immediately", 0), ("30 Seconds", 30), ("90 Seconds", 90), ("5 Minutes", 300), ("Never", .infinity),
     ]
 
     @Bindable var model: SettingsModel
+    @State private var isRefreshingRates = false
+    @State private var ratesRefreshFailed = false
 
     var body: some View {
         Form {
             Section {
-                LabeledContent {
+                LabeledContent("Hotkey") {
                     ShortcutRecorder(combination: $model.config.hotkey)
-                } label: {
-                    Label { Text("Hotkey") } icon: { Tile(symbol: "keyboard", color: .gray) }
                 }
-                Toggle(isOn: $model.config.launchAtLogin) {
-                    Label { Text("Open at Login") } icon: { Tile(symbol: "power", color: .green) }
+                if !model.isHotkeyRegistered {
+                    Label("\(model.config.hotkey.glyphs) is already used by another app or a system shortcut.", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                        .font(.callout)
                 }
+                Toggle("Open at Login", isOn: $model.config.launchAtLogin)
                 Toggle(isOn: $model.config.compact) {
-                    Label { Text("Compact Mode") } icon: { Tile(symbol: "rectangle.compress.vertical", color: .blue) }
+                    Text("Compact Bar")
+                    Text("Shows only the search field until you type.")
                 }
-                Picker(selection: $model.config.reopenTimeout) {
+                Picker("Clear Search After", selection: $model.config.reopenTimeout) {
                     ForEach(Self.reopenTimeouts, id: \.seconds) { option in
                         Text(option.title).tag(option.seconds)
                     }
                     if !Self.reopenTimeouts.contains(where: { $0.seconds == model.config.reopenTimeout }) {
-                        Text("After \(Duration.seconds(model.config.reopenTimeout).formatted(.units(allowed: [.minutes, .seconds], width: .wide)))")
+                        Text(Duration.seconds(model.config.reopenTimeout).formatted(.units(allowed: [.minutes, .seconds], width: .wide)))
                             .tag(model.config.reopenTimeout)
                     }
-                } label: {
-                    Label { Text("Clear Search") } icon: { Tile(symbol: "clock.arrow.circlepath", color: .orange) }
                 }
-            } footer: {
-                Text("Compact Mode shows only the search field until you start typing.")
-                    .foregroundStyle(.secondary)
             }
 
             Section("File Search") {
@@ -51,29 +50,40 @@ struct GeneralSettings: View {
 
             Section {
                 LabeledContent {
-                    TextField("Ignore Searches", text: historyIgnore, prompt: Text("Regular Expression"))
+                    TextField("Ignore Searches Matching", text: historyIgnore, prompt: Text("Regular Expression"))
                         .labelsHidden()
                         .font(.body.monospaced())
                 } label: {
-                    Label { Text("Ignore Searches") } icon: { Tile(symbol: "clock.badge.xmark", color: .purple) }
+                    Text("Ignore Searches Matching")
+                    Text("Matching searches aren't saved to history.")
                 }
                 if let problem = model.config.historyIgnoreProblem {
                     Label(problem, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.red)
                         .font(.callout)
                 }
-            } header: {
-                Text("History")
-            } footer: {
-                Text("Searches that fully match this aren't saved to history or ranking.")
-                    .foregroundStyle(.secondary)
             }
 
             Section {
-                LabeledContent {
-                    Button("Open", action: model.openFile)
-                } label: {
-                    Label { Text("settings.json") } icon: { Tile(symbol: "curlybraces", color: .gray) }
+                LabeledContent("Exchange Rates") {
+                    HStack(spacing: 8) {
+                        if isRefreshingRates {
+                            ProgressView()
+                                .controlSize(.small)
+                                .accessibilityLabel("Refreshing")
+                        }
+                        Text(ratesStatus)
+                            .foregroundStyle(.secondary)
+                        Button("Refresh", action: refreshRates)
+                            .disabled(isRefreshingRates)
+                    }
+                    .lineLimit(1)
+                    .fixedSize()
+                }
+            } footer: {
+                HStack {
+                    Spacer()
+                    Button("Open settings.json", action: model.openFile)
                 }
             }
         }
@@ -85,5 +95,19 @@ struct GeneralSettings: View {
             get: { model.config.historyIgnore ?? "" },
             set: { model.config.historyIgnore = $0.isEmpty ? nil : $0 }
         )
+    }
+
+    private var ratesStatus: String {
+        if ratesRefreshFailed { return "Couldn't Refresh" }
+        guard let rates = model.exchangeRates else { return "Not Downloaded" }
+        return (try? Date.ISO8601FormatStyle().year().month().day().parse(rates.date))?.formatted(date: .abbreviated, time: .omitted) ?? rates.date
+    }
+
+    private func refreshRates() {
+        isRefreshingRates = true
+        Task {
+            ratesRefreshFailed = !(await model.refreshRates())
+            isRefreshingRates = false
+        }
     }
 }
