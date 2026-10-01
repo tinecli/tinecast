@@ -64,10 +64,6 @@ final class LauncherModel {
         results.isEmpty && !isSearchingFiles && !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    var isBrowsing: Bool {
-        !config.compact && query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
     func edit(_ text: String) {
         guard text != query else { return }
         navigator.reset()

@@ -46,8 +46,8 @@ struct LauncherView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private var resultsHeight: CGFloat {
+        if !model.config.compact { return ResultsList.maximumContentHeight }
         if model.showsNoResults { return ResultsList.rowHeight }
-        if model.isBrowsing { return ResultsList.maximumContentHeight }
         let content = CGFloat(model.results.count) * ResultsList.rowHeight + CGFloat(model.sections.count) * ResultsList.headerHeight
         return min(content, ResultsList.maximumContentHeight)
     }
