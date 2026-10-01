@@ -15,7 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         try? FileManager.default.createDirectory(at: Self.folder, withIntermediateDirectories: true)
-        appsProvider = AppsProvider { [panel] items in panel.model.items = items }
+        appsProvider = AppsProvider { [panel] apps in panel.model.apps = apps }
         configWatcher = ConfigWatcher(
             url: Self.settingsURL,
             onReload: { [weak self] config in self?.apply(config) },

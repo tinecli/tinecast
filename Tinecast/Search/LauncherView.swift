@@ -35,8 +35,11 @@ struct LauncherView: View {
 
     @FocusState private var isSearchFocused: Bool
 
-    private var visibleRowCount: Int {
-        model.results.isEmpty ? (model.showsNoResults ? 1 : 0) : min(model.results.count, ResultsList.visibleRows)
+    private var resultsHeight: CGFloat {
+        if model.showsNoResults { return ResultsList.rowHeight }
+        if model.isBrowsing { return ResultsList.maximumContentHeight }
+        let content = CGFloat(model.results.count) * ResultsList.rowHeight + CGFloat(model.sections.count) * ResultsList.headerHeight
+        return min(content, ResultsList.maximumContentHeight)
     }
 
     var body: some View {
@@ -44,9 +47,9 @@ struct LauncherView: View {
             if model.isPresented {
                 VStack(spacing: 0) {
                     searchBar
-                    if visibleRowCount > 0 {
+                    if resultsHeight > 0 {
                         Divider()
-                        ResultsList(model: model, visibleRowCount: visibleRowCount, run: run)
+                        ResultsList(model: model, contentHeight: resultsHeight, run: run)
                     }
                 }
                 .frame(width: Self.glassWidth)
@@ -57,7 +60,7 @@ struct LauncherView: View {
             }
         }
         .overlay(alignment: .bottom) {
-            if model.isPresented && visibleRowCount > 0 {
+            if model.isPresented && resultsHeight > 0 {
                 ActionBar(
                     item: model.selectedItem,
                     material: model.config.material,

@@ -2,9 +2,14 @@ import Foundation
 import Observation
 import TinecastKit
 
+struct ResultSection {
+    let title: String
+    let start: Int
+}
+
 @Observable
 final class LauncherModel {
-    private static let suggestionLimit = 8
+    private static let recentLimit = 5
 
     var query = "" {
         didSet {
@@ -12,9 +17,9 @@ final class LauncherModel {
             search()
         }
     }
-    var items: [Item] = [] {
+    var apps = AppCatalog() {
         didSet {
-            appResults = rank(items, query: query, frecency: frecency)
+            appResults = rank(apps.alphabetical, query: query, frecency: frecency)
             updateResults()
         }
     }
@@ -30,12 +35,13 @@ final class LauncherModel {
     @ObservationIgnored var history = History()
     @ObservationIgnored var frecency = Frecency() {
         didSet {
-            appResults = rank(items, query: query, frecency: frecency)
+            appResults = rank(apps.alphabetical, query: query, frecency: frecency)
             updateResults()
         }
     }
     private(set) var isPresented = false
     private(set) var results: [Item] = []
+    private(set) var sections: [ResultSection] = []
     private(set) var selectedIndex = 0
     @ObservationIgnored private var appResults: [Item] = []
     @ObservationIgnored private var fileResults: [Item] = []
@@ -56,6 +62,10 @@ final class LauncherModel {
 
     var showsNoResults: Bool {
         results.isEmpty && !isSearchingFiles && !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var isBrowsing: Bool {
+        !config.compact && query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     func edit(_ text: String) {
@@ -102,34 +112,43 @@ final class LauncherModel {
     }
 
     private func search() {
-        appResults = rank(items, query: query, frecency: frecency)
+        appResults = rank(apps.alphabetical, query: query, frecency: frecency)
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         fileResults = fileResults.filter { $0.title.localizedStandardContains(trimmed) }
         isSearchingFiles = true
         filesProvider.search(query)
-        results = currentResults
+        layOut(currentGroups)
         selectedIndex = 0
     }
 
-    private var suggestions: [Item] {
-        let apps = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        return frecency.suggestions(limit: Self.suggestionLimit, now: .now).compactMap { id in
-            if let app = apps[id] { return app }
-            guard FileManager.default.fileExists(atPath: id) else { return nil }
-            let url = URL(filePath: id)
-            let folder = ((id as NSString).deletingLastPathComponent as NSString).abbreviatingWithTildeInPath
-            return Item(id: id, title: FileManager.default.displayName(atPath: id), subtitle: folder, icon: .file(url), action: .open(url))
+    private var recents: [Item] {
+        apps.recents(learned: frecency.suggestions(limit: Self.recentLimit, now: .now), limit: Self.recentLimit) { path in
+            guard FileManager.default.fileExists(atPath: path) else { return nil }
+            let url = URL(filePath: path)
+            let folder = ((path as NSString).deletingLastPathComponent as NSString).abbreviatingWithTildeInPath
+            return Item(id: path, title: FileManager.default.displayName(atPath: path), subtitle: folder, icon: .file(url), action: .open(url))
         }
     }
 
-    private var currentResults: [Item] {
-        guard query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return appResults + fileResults }
-        return config.compact ? [] : suggestions
+    private var currentGroups: [(title: String, items: [Item])] {
+        guard query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return [("Applications", appResults), ("Files", fileResults)]
+        }
+        return config.compact ? [] : [("Recent", recents), ("Applications", apps.alphabetical)]
+    }
+
+    private func layOut(_ groups: [(title: String, items: [Item])]) {
+        let shown = groups.filter { !$0.items.isEmpty }
+        results = shown.flatMap(\.items)
+        sections = shown.indices.map { index in
+            ResultSection(title: shown[index].title, start: shown[..<index].reduce(0) { $0 + $1.items.count })
+        }
     }
 
     private func updateResults() {
         let selectedID = selectedItem?.id
-        results = currentResults
+        layOut(currentGroups)
+        guard selectedItem?.id != selectedID else { return }
         selectedIndex = results.firstIndex { $0.id == selectedID } ?? min(selectedIndex, max(results.count - 1, 0))
     }
 }

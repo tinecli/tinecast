@@ -7,9 +7,9 @@ final class AppsProvider: NSObject {
     private static let finderPath = "/System/Library/CoreServices/Finder.app"
 
     private let query = NSMetadataQuery()
-    private let onUpdate: ([Item]) -> Void
+    private let onUpdate: (AppCatalog) -> Void
 
-    init(onUpdate: @escaping ([Item]) -> Void) {
+    init(onUpdate: @escaping (AppCatalog) -> Void) {
         self.onUpdate = onUpdate
         super.init()
         query.predicate = NSPredicate(format: "%K == %@", NSMetadataItemContentTypeKey, "com.apple.application-bundle")
@@ -22,7 +22,7 @@ final class AppsProvider: NSObject {
     @objc private func publish() {
         query.disableUpdates()
         defer { query.enableUpdates() }
-        let apps = query.results.compactMap { result -> (bundleID: String, priority: Int, item: Item)? in
+        let apps = query.results.compactMap { result -> (bundleID: String, priority: Int, item: Item, lastUsed: Date?)? in
             guard let item = result as? NSMetadataItem,
                   let path = item.value(forAttribute: NSMetadataItemPathKey) as? String,
                   let name = item.value(forAttribute: NSMetadataItemDisplayNameKey) as? String
@@ -32,11 +32,12 @@ final class AppsProvider: NSObject {
             let title = name.hasSuffix(".app") ? String(name.dropLast(4)) : name
             let bundleID = item.value(forAttribute: NSMetadataItemCFBundleIdentifierKey) as? String ?? path
             let priority = Self.preferredFolders.firstIndex { path.hasPrefix($0) } ?? Self.preferredFolders.count
-            return (bundleID, priority, Item(id: path, title: title, icon: .file(url), action: .open(url)))
+            let lastUsed = item.value(forAttribute: NSMetadataItemLastUsedDateKey) as? Date
+            return (bundleID, priority, Item(id: path, title: title, icon: .file(url), action: .open(url)), lastUsed)
         }
         let preferred = Dictionary(apps.map { ($0.bundleID, $0) }, uniquingKeysWith: { $0.priority <= $1.priority ? $0 : $1 })
         let finderURL = URL(filePath: Self.finderPath)
         let finder = Item(id: Self.finderPath, title: FileManager.default.displayName(atPath: Self.finderPath), icon: .file(finderURL), action: .open(finderURL))
-        onUpdate(preferred.values.map(\.item) + [finder])
+        onUpdate(AppCatalog(preferred.values.map { ($0.item, $0.lastUsed) } + [(finder, nil)]))
     }
 }
