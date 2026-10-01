@@ -59,7 +59,9 @@ struct PermissionsPane: View {
 
     var body: some View {
         Form {
-            PaneHeader(pane: .permissions)
+            Section {
+                PaneHeader(pane: .permissions)
+            }
             Section {
                 PermissionRow(title: "Accessibility", reason: "Lock Screen and media keys.", status: accessibility) {
                     if accessibility != .allowed {

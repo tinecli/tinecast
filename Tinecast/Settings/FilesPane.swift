@@ -5,7 +5,9 @@ struct FilesPane: View {
 
     var body: some View {
         Form {
-            PaneHeader(pane: .files)
+            Section {
+                PaneHeader(pane: .files)
+            }
             Section("Search In") {
                 FolderList(title: "Search In", paths: $model.config.fileSearch.folders)
             }

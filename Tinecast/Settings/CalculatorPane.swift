@@ -8,7 +8,9 @@ struct CalculatorPane: View {
     var body: some View {
         let rates = model.exchangeRates
         Form {
-            PaneHeader(pane: .calculator)
+            Section {
+                PaneHeader(pane: .calculator)
+            }
             Section("Exchange Rates") {
                 LabeledContent("Source", value: "European Central Bank")
                 LabeledContent("Rates From") {

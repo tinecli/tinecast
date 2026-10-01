@@ -11,7 +11,6 @@ struct SettingsView: View {
         } detail: {
             detail
                 .navigationTitle(history.current.title)
-                .toolbar(removing: .title)
                 .toolbar {
                     ToolbarItem(placement: .navigation) {
                         ControlGroup {

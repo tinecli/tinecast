@@ -9,7 +9,9 @@ struct GeneralPane: View {
 
     var body: some View {
         Form {
-            PaneHeader(pane: .general)
+            Section {
+                PaneHeader(pane: .general)
+            }
             Section("Global Shortcut") {
                 LabeledContent("Open tinecast") {
                     ShortcutRecorder(combination: $model.config.hotkey)

@@ -7,25 +7,29 @@ struct ApplicationsSettings: View {
     @State private var rows: [ItemRowValue] = []
 
     var body: some View {
-        List {
-            PaneHeader(pane: .applications)
-                .listRowSeparator(.hidden)
-            ForEach(rows) { row in
-                ItemRow(value: row, model: model) {
-                    ItemIcon(icon: row.icon)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                SettingsCard {
+                    PaneHeader(pane: .applications)
+                    FilterBar(prompt: "Filter Applications", text: $filter, scope: $scope)
+                }
+                if rows.isEmpty {
+                    emptyResult
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
+                } else {
+                    SettingsCard {
+                        ForEach(rows) { row in
+                            ItemRow(value: row, model: model) {
+                                ItemIcon(icon: row.icon)
+                            }
+                        }
+                    }
                 }
             }
-            if rows.isEmpty {
-                emptyResult
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
-                    .listRowSeparator(.hidden)
-            }
+            .padding(20)
         }
-        .listStyle(.inset)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            FilterBar(prompt: "Filter Applications", text: $filter, scope: $scope)
-        }
+        .background(Color(nsColor: .windowBackgroundColor))
         .onChange(of: filter, initial: true, updateRows)
         .onChange(of: scope, updateRows)
         .onChange(of: model.applications, updateRows)

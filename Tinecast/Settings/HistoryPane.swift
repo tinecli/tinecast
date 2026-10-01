@@ -7,7 +7,9 @@ struct HistoryPane: View {
 
     var body: some View {
         Form {
-            PaneHeader(pane: .history)
+            Section {
+                PaneHeader(pane: .history)
+            }
             Section {
                 LabeledContent {
                     TextField("Ignore Searches Matching", text: historyIgnore, prompt: Text("Regular Expression"))

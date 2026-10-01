@@ -9,40 +9,42 @@ struct CommandsSettings: View {
     var body: some View {
         let commands = model.config.commands
         let aliases = model.config.aliases
-        List {
-            PaneHeader(pane: .commands)
-                .listRowSeparator(.hidden)
-            if commands.isEmpty {
-                ContentUnavailableView {
-                    Label("No Commands", systemImage: Pane.commands.symbol)
-                } description: {
-                    Text("Commands you add appear in tinecast’s search.")
-                } actions: {
-                    Button("Add Command…", action: add)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                SettingsCard {
+                    PaneHeader(pane: .commands)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 24)
-                .listRowSeparator(.hidden)
-            } else {
-                Section {
-                    ForEach(commands) { command in
-                        CommandRow(
-                            command: command,
-                            alias: aliases[command.item.id],
-                            edit: { editing = EditRequest(command: command, isNew: false) },
-                            duplicate: { model.duplicateCommand(command) },
-                            delete: { deleting = command }
-                        )
+                if commands.isEmpty {
+                    ContentUnavailableView {
+                        Label("No Commands", systemImage: Pane.commands.symbol)
+                    } description: {
+                        Text("Commands you add appear in tinecast’s search.")
+                    } actions: {
+                        Button("Add Command…", action: add)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 24)
+                } else {
+                    SettingsCard {
+                        ForEach(commands) { command in
+                            CommandRow(
+                                command: command,
+                                alias: aliases[command.item.id],
+                                edit: { editing = EditRequest(command: command, isNew: false) },
+                                duplicate: { model.duplicateCommand(command) },
+                                delete: { deleting = command }
+                            )
+                        }
+                    }
+                    HStack {
+                        Spacer()
+                        Button("Add Command…", action: add)
                     }
                 }
-                HStack {
-                    Spacer()
-                    Button("Add Command…", action: add)
-                }
-                .listRowSeparator(.hidden)
             }
+            .padding(20)
         }
-        .listStyle(.inset)
+        .background(Color(nsColor: .windowBackgroundColor))
         .sheet(item: $editing) { request in
             CommandEditor(command: request.command, alias: aliases[request.command.item.id] ?? "", isNew: request.isNew, save: { model.saveCommand($0); model.setAlias($1, for: $0.item.id) })
         }

@@ -22,7 +22,7 @@ struct FilterBar: View {
                 }
             }
             .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            .padding(.vertical, 4)
             .background(.fill.tertiary, in: .capsule)
             Picker("Show", selection: $scope) {
                 ForEach(ItemScope.allCases) { scope in
@@ -33,8 +33,5 @@ struct FilterBar: View {
             .labelsHidden()
             .fixedSize()
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 8)
-        .background(.bar)
     }
 }

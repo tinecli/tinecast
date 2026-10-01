@@ -101,7 +101,7 @@ struct PaneTile: View {
             }
             .overlay {
                 Image(systemName: symbol)
-                    .font(.system(size: size * 0.62, weight: .semibold))
+                    .font(.system(size: size * 0.55, weight: .medium))
                     .symbolRenderingMode(.monochrome)
                     .foregroundStyle(.white)
             }
@@ -120,20 +120,15 @@ struct PaneHeader: View {
     let pane: Pane
 
     var body: some View {
-        Section {
-            VStack(spacing: 8) {
-                PaneTile(pane: pane, size: 64)
-                    .padding(.bottom, 2)
+        HStack(spacing: 8) {
+            PaneTile(pane: pane, size: 28)
+            VStack(alignment: .leading, spacing: 2) {
                 Text(pane.title)
-                    .font(.title)
-                    .fontWeight(.bold)
+                    .fontWeight(.semibold)
                     .accessibilityAddTraits(.isHeader)
                 Text(pane.summary)
                     .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
         }
     }
 }

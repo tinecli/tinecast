@@ -16,32 +16,33 @@ struct SystemActionsSettings: View {
     @State private var sections: [(title: String, rows: [ItemRowValue])] = []
 
     var body: some View {
-        List {
-            PaneHeader(pane: .systemActions)
-                .listRowSeparator(.hidden)
-            ForEach(sections, id: \.title) { section in
-                Section(section.title) {
-                    ForEach(section.rows) { row in
-                        ItemRow(value: row, note: Self.asksFirst.contains(row.id) ? "Asks First" : nil, model: model) {
-                            if case .symbol(let name) = row.icon {
-                                PaneTile(symbol: name, color: Pane.systemActions.color, size: 20)
-                                    .symbolVariant(.fill)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                SettingsCard {
+                    PaneHeader(pane: .systemActions)
+                    FilterBar(prompt: "Filter System Actions", text: $filter, scope: $scope)
+                }
+                ForEach(sections, id: \.title) { section in
+                    SettingsCard(title: section.title) {
+                        ForEach(section.rows) { row in
+                            ItemRow(value: row, note: Self.asksFirst.contains(row.id) ? "Asks First" : nil, model: model) {
+                                if case .symbol(let name) = row.icon {
+                                    PaneTile(symbol: name, color: Pane.systemActions.color, size: 20)
+                                        .symbolVariant(.fill)
+                                }
                             }
                         }
                     }
                 }
+                if sections.isEmpty {
+                    emptyResult
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
+                }
             }
-            if sections.isEmpty {
-                emptyResult
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
-                    .listRowSeparator(.hidden)
-            }
+            .padding(20)
         }
-        .listStyle(.inset)
-        .safeAreaInset(edge: .top, spacing: 0) {
-            FilterBar(prompt: "Filter System Actions", text: $filter, scope: $scope)
-        }
+        .background(Color(nsColor: .windowBackgroundColor))
         .onChange(of: filter, initial: true, updateSections)
         .onChange(of: scope, updateSections)
         .onChange(of: model.config.aliases, updateSections)
