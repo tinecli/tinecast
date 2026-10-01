@@ -2,11 +2,11 @@ import Foundation
 import Testing
 import TinecastKit
 
-private let rates = ["EUR": 1, "SEK": 11, "USD": 1.1, "GBP": 0.8]
+private let rates = ExchangeRates(date: "2026-09-30", fetchedAt: .distantPast, rates: ["EUR": 1, "SEK": 11, "USD": 1.1, "GBP": 0.8])
 private let english = Locale(identifier: "en_US")
 
-private func result(_ query: String, rates: [String: Double] = rates, local: String? = "SEK", locale: Locale = english) -> String? {
-    calculate(query, rates: rates, localCurrency: local, locale: locale)?.display
+private func result(_ query: String, rates: ExchangeRates? = rates, local: String? = "SEK", locale: Locale = english) -> String? {
+    calculate(query, rates: rates, localCurrency: local, locale: locale)?.result.text
 }
 
 @Test func evaluatesArithmeticWithPrecedence() {
@@ -141,10 +141,10 @@ private func result(_ query: String, rates: [String: Double] = rates, local: Str
 }
 
 @Test func missingRatesGiveNoResult() {
-    #expect(result("100 usd to sek", rates: [:]) == nil)
-    #expect(result("100 usd", rates: [:]) == nil)
+    #expect(result("100 usd to sek", rates: nil) == nil)
+    #expect(result("100 usd", rates: nil) == nil)
     #expect(result("100 EUR + 5 CHF") == nil)
-    #expect(result("100 EUR + 5 EUR", rates: [:]) == "105.00 EUR")
+    #expect(result("100 EUR + 5 EUR", rates: nil) == "105.00 EUR")
     #expect(result("10 eur to xyz") == nil)
 }
 
@@ -216,11 +216,78 @@ private func result(_ query: String, rates: [String: Double] = rates, local: Str
     let swedish = Locale(identifier: "sv_SE")
     let calculation = calculate("14390 SEK + 2950,5 SEK", rates: rates, localCurrency: "SEK", locale: swedish)
 
-    #expect(calculation?.display == "17\u{A0}340,50 SEK")
+    #expect(calculation?.result.text == "17\u{A0}340,50 SEK")
     #expect(calculation?.raw == "17340,50")
     #expect(result("7 / 2", locale: swedish) == "3,5")
     #expect(result("7 / 2", locale: Locale(identifier: "de_DE")) == "3,5")
     #expect(result("1000 * 1000", locale: Locale(identifier: "de_DE")) == "1.000.000")
+}
+
+@Test func negativeNumbersAndGroupingFollowTheLocale() {
+    let swedish = Locale(identifier: "sv_SE")
+
+    #expect(result("1234.5 * 1", locale: english) == "1,234.5")
+    #expect(result("1234.5 * 1", locale: swedish) == "1\u{A0}234,5")
+    #expect(result("0 - 1234.5", locale: swedish) == "\u{2212}1\u{A0}234,5")
+    #expect(calculate("0 - 1234.5", rates: rates, localCurrency: "SEK", locale: swedish)?.raw == "\u{2212}1234,5")
+}
+
+@Test func currencyConversionNamesBothSidesAndQuotesTheRate() throws {
+    let calculation = try #require(calculate("100 SEK", rates: rates, localCurrency: "SEK", locale: english))
+
+    #expect(calculation.input == Calculation.Side(text: "100 SEK", name: "Swedish Krona"))
+    #expect(calculation.result == Calculation.Side(text: "9.09 EUR", name: "Euro"))
+    #expect(calculation.rateNote == "1 SEK = 0.09091 EUR · ECB reference rate, Sep 30, 2026")
+}
+
+@Test func explicitConversionKeepsTheKeywordOutOfTheInput() throws {
+    let calculation = try #require(calculate("100 usd to sek", rates: rates, localCurrency: "SEK", locale: english))
+
+    #expect(calculation.input == Calculation.Side(text: "100 USD", name: "US Dollar"))
+    #expect(calculation.result.name == "Swedish Krona")
+    #expect(calculation.rateNote == "1 USD = 10 SEK · ECB reference rate, Sep 30, 2026")
+}
+
+@Test func mixedSumsAreExpressionsWithOneRateOrJustTheDate() throws {
+    let oneOther = try #require(calculate("14390 SEK + 2950 SEK + 260 EUR", rates: rates, localCurrency: "SEK", locale: english))
+    let twoOthers = try #require(calculate("100 SEK + 10 EUR + 5 USD", rates: rates, localCurrency: "SEK", locale: english))
+
+    #expect(oneOther.input == Calculation.Side(text: "14390 SEK + 2950 SEK + 260 EUR", name: "Expression"))
+    #expect(oneOther.result.name == "Swedish Krona")
+    #expect(oneOther.rateNote == "1 EUR = 11 SEK · ECB reference rate, Sep 30, 2026")
+    #expect(twoOthers.rateNote == "ECB reference rates, Sep 30, 2026")
+    #expect(calculate("14390 SEK + 2950 SEK", rates: rates, localCurrency: "SEK", locale: english)?.rateNote == nil)
+}
+
+@Test func rateNoteDateFollowsTheLocale() {
+    let note = calculate("100 SEK", rates: rates, localCurrency: "SEK", locale: Locale(identifier: "sv_SE"))?.rateNote
+
+    #expect(note == "1 SEK = 0,09091 EUR · ECB reference rate, 30 sep. 2026")
+}
+
+@Test func unitConversionsUseLocalizedUnitNames() throws {
+    let calculation = try #require(calculate("5 km to mi", rates: rates, localCurrency: "SEK", locale: english))
+    let name = { (query: String, locale: Locale) in calculate(query, rates: rates, localCurrency: "SEK", locale: locale)?.result.name }
+
+    #expect(calculation.input == Calculation.Side(text: "5 km", name: "Kilometers"))
+    #expect(calculation.result.name == "Miles")
+    #expect(calculation.rateNote == nil)
+    #expect(name("3 kg in lb", english) == "Pounds")
+    #expect(name("1 l to floz", english) == "Fluid ounces")
+    #expect(name("10 m/s to km/h", english) == "Kilometers per hour")
+    #expect(name("2 days to hours", english) == "Hours")
+    #expect(name("48 hours to days", english) == "Days")
+    #expect(name("1 gib to mib", english) == "Mebibytes")
+    #expect(name("5 km to mi", Locale(identifier: "de_DE")) == "Meilen")
+}
+
+@Test func plainMathIsAnExpressionWithAnAnswer() throws {
+    let calculation = try #require(calculate("1+2*3", rates: rates, localCurrency: "SEK", locale: english))
+
+    #expect(calculation.input == Calculation.Side(text: "1 + 2 × 3", name: "Expression"))
+    #expect(calculation.result == Calculation.Side(text: "7", name: "Answer"))
+    #expect(calculation.rateNote == nil)
+    #expect(calculate("1 km + 500 m", rates: rates, localCurrency: "SEK", locale: english)?.input.name == "Expression")
 }
 
 @Test func expressionIsNormalized() {
@@ -247,6 +314,6 @@ private func result(_ query: String, rates: [String: Double] = rates, local: Str
             return pieces[Int(seed >> 33) % pieces.count]
         }.joined()
         _ = calculate(query, rates: rates, localCurrency: "SEK", locale: english)
-        _ = calculate(query, rates: [:], localCurrency: nil, locale: english)
+        _ = calculate(query, rates: nil, localCurrency: nil, locale: english)
     }
 }

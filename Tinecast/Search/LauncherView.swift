@@ -41,7 +41,8 @@ struct LauncherView: View {
 
     private var resultsHeight: CGFloat {
         if !model.config.compact { return ResultsList.maximumContentHeight }
-        let content = CGFloat(model.results.count) * ResultsList.rowHeight + CGFloat(model.sections.count) * ResultsList.headerHeight
+        let card = model.calculation == nil ? 0 : CalculatorCard.height - ResultsList.rowHeight
+        let content = CGFloat(model.results.count) * ResultsList.rowHeight + card + CGFloat(model.sections.count) * ResultsList.headerHeight
         return min(content, ResultsList.maximumContentHeight)
     }
 

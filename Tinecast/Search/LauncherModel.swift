@@ -32,9 +32,9 @@ final class LauncherModel {
             updateResults()
         }
     }
-    var exchangeRates: [String: Double] = [:] {
+    var exchangeRates: ExchangeRates? {
         didSet {
-            calculatorResults = calculatorItems()
+            calculation = calculate(query, rates: exchangeRates, localCurrency: Locale.current.currency?.identifier, locale: .current)
             updateResults()
         }
     }
@@ -50,7 +50,7 @@ final class LauncherModel {
     private(set) var results: [Item] = []
     private(set) var sections: [ResultSection] = []
     private(set) var selectedIndex = 0
-    @ObservationIgnored private var calculatorResults: [Item] = []
+    private(set) var calculation: Calculation?
     @ObservationIgnored private var appResults: [Item] = []
     @ObservationIgnored private var fileResults: [Item] = []
     @ObservationIgnored private var navigator = HistoryNavigator()
@@ -117,8 +117,8 @@ final class LauncherModel {
     }
 
     private func search() {
-        calculatorResults = calculatorItems()
-        if !calculatorResults.isEmpty || exchangeRates.isEmpty { refreshRates() }
+        calculation = calculate(query, rates: exchangeRates, localCurrency: Locale.current.currency?.identifier, locale: .current)
+        if calculation != nil || exchangeRates == nil { refreshRates() }
         appResults = rank(apps.alphabetical, query: query, frecency: frecency)
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         fileResults = fileResults.filter { $0.title.localizedStandardContains(trimmed) }
@@ -128,9 +128,9 @@ final class LauncherModel {
         selectedIndex = 0
     }
 
-    private func calculatorItems() -> [Item] {
-        guard let calculation = calculate(query, rates: exchangeRates, localCurrency: Locale.current.currency?.identifier, locale: .current) else { return [] }
-        return [Item(id: "calculator", title: calculation.display, subtitle: calculation.expression, icon: .symbol("equal.circle"), action: .copy(calculation.raw))]
+    private var calculatorResults: [Item] {
+        guard let calculation else { return [] }
+        return [Item(id: "calculator", title: calculation.result.text, subtitle: calculation.expression, icon: .symbol("equal.circle"), action: .copy(calculation.raw))]
     }
 
     private var recents: [Item] {

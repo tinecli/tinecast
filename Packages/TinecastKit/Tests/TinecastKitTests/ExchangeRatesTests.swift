@@ -50,3 +50,56 @@ private let fetchedAt = Date(timeIntervalSinceReferenceDate: 812_000_000)
     #expect(Set(keys) == ["date", "fetchedAt", "rates"])
     #expect(try JSONDecoder().decode(ExchangeRates.self, from: data) == rates)
 }
+
+private func berlin(_ month: Int, _ day: Int, _ hour: Int, _ minute: Int) -> Date {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "Europe/Berlin")!
+    return calendar.date(from: DateComponents(year: 2026, month: month, day: day, hour: hour, minute: minute))!
+}
+
+private func utc(_ month: Int, _ day: Int, _ hour: Int, _ minute: Int) -> Date {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = .gmt
+    return calendar.date(from: DateComponents(year: 2026, month: month, day: day, hour: hour, minute: minute))!
+}
+
+private func rates(on date: String, fetchedAt: Date = .distantPast) -> ExchangeRates {
+    ExchangeRates(date: date, fetchedAt: fetchedAt, rates: ["EUR": 1])
+}
+
+@Test func ratesTurnStaleAtQuarterPastFourBerlinTimeOnTheNextWeekday() {
+    let wednesday = rates(on: "2026-09-30")
+
+    #expect(!wednesday.isStale(at: berlin(9, 30, 20, 0)))
+    #expect(!wednesday.isStale(at: berlin(10, 1, 9, 0)))
+    #expect(!wednesday.isStale(at: berlin(10, 1, 16, 14)))
+    #expect(wednesday.isStale(at: berlin(10, 1, 16, 15)))
+    #expect(wednesday.isStale(at: berlin(10, 1, 23, 0)))
+}
+
+@Test func weekendsPublishNothing() {
+    let friday = rates(on: "2026-10-02")
+
+    #expect(!friday.isStale(at: berlin(10, 3, 18, 0)))
+    #expect(!friday.isStale(at: berlin(10, 4, 18, 0)))
+    #expect(!friday.isStale(at: berlin(10, 5, 10, 0)))
+    #expect(friday.isStale(at: berlin(10, 5, 16, 16)))
+    #expect(rates(on: "2026-10-01").isStale(at: berlin(10, 3, 10, 0)))
+}
+
+@Test func publicationTimeFollowsBerlinDaylightSaving() {
+    #expect(!rates(on: "2026-09-30").isStale(at: utc(10, 1, 14, 14)))
+    #expect(rates(on: "2026-09-30").isStale(at: utc(10, 1, 14, 16)))
+    #expect(!rates(on: "2026-10-23").isStale(at: utc(10, 26, 15, 14)))
+    #expect(rates(on: "2026-10-23").isStale(at: utc(10, 26, 15, 16)))
+}
+
+@Test func holidaysRetryHourlyAfterAnUnchangedFetch() {
+    #expect(rates(on: "2026-12-24").isStale(at: berlin(12, 25, 17, 0)))
+    #expect(!rates(on: "2026-12-24", fetchedAt: berlin(12, 25, 16, 30)).isStale(at: berlin(12, 25, 17, 0)))
+    #expect(rates(on: "2026-12-24", fetchedAt: berlin(12, 25, 16, 0)).isStale(at: berlin(12, 25, 17, 0)))
+}
+
+@Test func unreadableDatesAreStale() {
+    #expect(rates(on: "garbage").isStale(at: berlin(10, 1, 9, 0)))
+}

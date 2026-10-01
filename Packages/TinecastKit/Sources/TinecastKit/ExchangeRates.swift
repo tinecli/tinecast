@@ -2,6 +2,7 @@ import Foundation
 
 public struct ExchangeRates: Codable, Equatable, Sendable {
     private static let currentWindow: TimeInterval = 7 * 24 * 60 * 60
+    private static let retryInterval: TimeInterval = 60 * 60
 
     public let date: String
     public let fetchedAt: Date
@@ -11,6 +12,19 @@ public struct ExchangeRates: Codable, Equatable, Sendable {
         self.date = date
         self.fetchedAt = fetchedAt
         self.rates = rates
+    }
+
+    public func isStale(at now: Date) -> Bool {
+        guard now.timeIntervalSince(fetchedAt) >= Self.retryInterval else { return false }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Berlin") ?? .gmt
+        guard let rateDay = try? Date.ISO8601FormatStyle(timeZone: calendar.timeZone).year().month().day().parse(date),
+              let publishedToday = calendar.date(bySettingHour: 16, minute: 15, second: 0, of: now)
+        else { return true }
+        let latestPublication = (0...3).lazy
+            .compactMap { calendar.date(byAdding: .day, value: -$0, to: publishedToday) }
+            .first { $0 <= now && !calendar.isDateInWeekend($0) }
+        return latestPublication.map { calendar.startOfDay(for: $0) > rateDay } ?? true
     }
 
     public init?(ecbCSV csv: String, fetchedAt: Date) {

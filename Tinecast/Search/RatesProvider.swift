@@ -6,7 +6,6 @@ private let logger = Logger(subsystem: "dev.gustaf.tinecast", category: "rates")
 
 final class RatesProvider {
     private static let source = URL(string: "https://data-api.ecb.europa.eu/service/data/EXR/D..EUR.SP00.A?lastNObservations=1&format=csvdata")!
-    private static let maximumAge: TimeInterval = 24 * 60 * 60
     private static let retryDelay: TimeInterval = 60 * 60
     private static let timeout: TimeInterval = 10
 
@@ -25,7 +24,7 @@ final class RatesProvider {
 
     func refreshIfStale() {
         guard download == nil else { return }
-        if let rates, Date.now.timeIntervalSince(rates.fetchedAt) < Self.maximumAge { return }
+        if let rates, !rates.isStale(at: .now) { return }
         if let failedAt, Date.now.timeIntervalSince(failedAt) < Self.retryDelay { return }
         download = Task { [weak self] in
             await self?.fetch()

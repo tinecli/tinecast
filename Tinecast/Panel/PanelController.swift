@@ -18,7 +18,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         self.settingsURL = settingsURL
         let model = LauncherModel()
         self.model = model
-        ratesProvider = RatesProvider(file: JSONFile(url: folder.appending(path: "rates.json"))) { rates in model.exchangeRates = rates.rates }
+        ratesProvider = RatesProvider(file: JSONFile(url: folder.appending(path: "rates.json"))) { rates in model.exchangeRates = rates }
         super.init()
         model.refreshRates = { [weak ratesProvider] in ratesProvider?.refreshIfStale() }
         ratesProvider.refreshIfStale()

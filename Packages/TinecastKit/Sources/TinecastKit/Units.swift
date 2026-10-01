@@ -71,3 +71,9 @@ let units: [String: Dimension] = {
     ]
     return Dictionary(uniqueKeysWithValues: names.flatMap { entry in entry.names.map { ($0, entry.unit) } })
 }()
+
+let foundationTwins: [String: Dimension] = Dictionary(uniqueKeysWithValues: [
+    UnitMass.ounces, UnitMass.pounds, UnitMass.stones,
+    UnitVolume.teaspoons, UnitVolume.tablespoons, UnitVolume.fluidOunces, UnitVolume.pints, UnitVolume.quarts, UnitVolume.gallons,
+    UnitSpeed.kilometersPerHour, UnitSpeed.knots,
+].map { ($0.symbol, $0) })

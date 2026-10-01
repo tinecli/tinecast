@@ -17,36 +17,23 @@ struct ResultRow: View {
             icon
                 .frame(width: Self.iconSize, height: Self.iconSize)
                 .accessibilityHidden(true)
-            switch item.action {
-            case .open(let url):
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(item.title)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(item.title)
+                    .lineLimit(1)
+                if let subtitle = item.subtitle {
+                    Text(subtitle)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
-                    if let subtitle = item.subtitle {
-                        Text(subtitle)
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
+                        .truncationMode(.middle)
                 }
-                Spacer(minLength: 0)
+            }
+            Spacer(minLength: 0)
+            if case .open(let url) = item.action {
                 Text(url.pathExtension == "app" ? "Application" : "File")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .accessibilityHidden(true)
-            case .copy:
-                Text(item.title)
-                    .font(.title.weight(.semibold))
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .layoutPriority(1)
-                Spacer(minLength: 16)
-                Text(item.subtitle ?? "")
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
             }
         }
         .padding(.horizontal, Self.horizontalPadding)

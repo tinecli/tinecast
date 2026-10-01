@@ -67,11 +67,16 @@ struct ResultsList: View {
     private func row(at index: Int) -> some View {
         let item = model.results[index]
         let isSelected = index == model.selectedIndex
+        let calculation: Calculation? = if case .copy = item.action { model.calculation } else { nil }
         return Button { run(item) } label: {
-            ResultRow(item: item, isSelected: isSelected)
+            if let calculation {
+                CalculatorCard(calculation: calculation, isSelected: isSelected)
+            } else {
+                ResultRow(item: item, isSelected: isSelected)
+            }
         }
         .buttonStyle(.plain)
-        .frame(height: Self.rowHeight)
+        .frame(height: calculation == nil ? Self.rowHeight : CalculatorCard.height)
         .accessibilityLabel(item.subtitle.map { "\(item.title), \($0)" } ?? item.title)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }

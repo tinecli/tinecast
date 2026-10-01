@@ -1,15 +1,28 @@
 import Foundation
 
 public struct Calculation: Equatable, Sendable {
+    public struct Side: Equatable, Sendable {
+        public let text: String
+        public let name: String
+
+        public init(text: String, name: String) {
+            self.text = text
+            self.name = name
+        }
+    }
+
     public let expression: String
-    public let display: String
+    public let input: Side
+    public let result: Side
     public let raw: String
+    public let rateNote: String?
 }
 
-public func calculate(_ query: String, rates: [String: Double], localCurrency: String?, locale: Locale) -> Calculation? {
+public func calculate(_ query: String, rates: ExchangeRates?, localCurrency: String?, locale: Locale) -> Calculation? {
     guard let tokens = try? tokenize(query), !tokens.isEmpty else { return nil }
-    var parser = Parser(tokens: tokens, rates: rates.merging(["EUR": 1]) { current, _ in current })
-    guard let (operand, target) = try? parser.query() else { return nil }
+    let allRates = (rates?.rates ?? [:]).merging(["EUR": 1]) { current, _ in current }
+    var parser = Parser(tokens: tokens, rates: allRates)
+    guard let (operand, conversion) = try? parser.query() else { return nil }
     let value = operand.quantity.plain
     let local = localCurrency ?? "EUR"
     let implicitTarget: Target? = if !parser.isBareLiteral {
@@ -22,11 +35,18 @@ public func calculate(_ query: String, rates: [String: Double], localCurrency: S
         nil
     }
     guard !parser.isBareLiteral || implicitTarget != nil,
-          let result = try? (target ?? implicitTarget).map({ try parser.convert(value, to: $0) }) ?? value,
+          let result = try? (conversion?.target ?? implicitTarget).map({ try parser.convert(value, to: $0) }) ?? value,
           result.magnitude.isFinite
     else { return nil }
     let (display, raw) = format(result, locale: locale)
-    return Calculation(expression: operand.text + (implicitTarget.map { " in \($0.name)" } ?? ""), display: display, raw: raw)
+    let suffix = conversion.map { " \($0.keyword) \($0.target.name)" } ?? implicitTarget.map { " in \($0.name)" } ?? ""
+    return Calculation(
+        expression: operand.text + suffix,
+        input: Calculation.Side(text: operand.text, name: operand.isAmount ? name(of: value, locale: locale) : "Expression"),
+        result: Calculation.Side(text: display, name: name(of: result, locale: locale)),
+        raw: raw,
+        rateNote: rates.flatMap { rateNote(for: result, from: parser.currencies, rates: allRates, date: $0.date, locale: locale) }
+    )
 }
 
 private struct CalculationError: Error {}
@@ -89,6 +109,7 @@ private enum Quantity {
 private struct Operand {
     let quantity: Quantity
     let text: String
+    var isAmount = false
 }
 
 private let currencySigns: [Character: String] = ["€": "EUR", "$": "USD", "£": "GBP", "¥": "JPY"]
@@ -167,18 +188,19 @@ private struct Parser {
     let rates: [String: Double]
     private var position = 0
     private(set) var isBareLiteral = true
+    private(set) var currencies: [String] = []
 
     init(tokens: [Token], rates: [String: Double]) {
         self.tokens = tokens
         self.rates = rates
     }
 
-    mutating func query() throws(CalculationError) -> (Operand, Target?) {
+    mutating func query() throws(CalculationError) -> (Operand, (keyword: String, target: Target)?) {
         let operand = try expression()
         guard position < tokens.count else { return (operand, nil) }
         guard isConversion(at: position), case .word(let keyword) = tokens[position], let target = target(at: position + 1) else { throw CalculationError() }
         isBareLiteral = false
-        return (Operand(quantity: operand.quantity, text: "\(operand.text) \(keyword) \(target.name)"), target)
+        return (operand, (keyword, target))
     }
 
     func convert(_ quantity: Quantity, to target: Target) throws(CalculationError) -> Quantity {
@@ -203,6 +225,11 @@ private struct Parser {
         guard case .word(let word) = tokens[index] else { return nil }
         if let unit = units[word] { return .unit(unit) }
         return currencyCodes.contains(word.uppercased()) ? .currency(word.uppercased()) : nil
+    }
+
+    private mutating func money(_ value: Double, currency code: String, text: String) -> Operand {
+        if !currencies.contains(code) { currencies.append(code) }
+        return Operand(quantity: .money(value, currency: code), text: "\(text) \(code)", isAmount: true)
     }
 
     private mutating func consume(_ token: Token) -> Bool {
@@ -249,7 +276,7 @@ private struct Parser {
     private mutating func unary() throws(CalculationError) -> Operand {
         if consume(.symbol("-")) {
             let operand = try unary()
-            return Operand(quantity: operand.quantity.with(magnitude: -operand.quantity.magnitude), text: "-\(operand.text)")
+            return Operand(quantity: operand.quantity.with(magnitude: -operand.quantity.magnitude), text: "-\(operand.text)", isAmount: operand.isAmount)
         }
         return try power()
     }
@@ -279,7 +306,7 @@ private struct Parser {
         if case .currencySign(let code) = token {
             guard position < tokens.count, case .number(let value, let text) = tokens[position] else { throw CalculationError() }
             position += 1
-            return Operand(quantity: .money(value, currency: code), text: "\(text) \(code)")
+            return money(value, currency: code, text: text)
         }
         if token == .symbol("(") {
             let inner = try expression()
@@ -301,17 +328,18 @@ private struct Parser {
         guard position < tokens.count, !isConversion(at: position) else { return Operand(quantity: .number(value), text: text) }
         if case .currencySign(let code) = tokens[position] {
             position += 1
-            return Operand(quantity: .money(value, currency: code), text: "\(text) \(code)")
+            return money(value, currency: code, text: text)
         }
         guard case .word = tokens[position], let target = target(at: position) else {
             return Operand(quantity: .number(value), text: text)
         }
         position += 1
-        let quantity: Quantity = switch target {
-        case .currency(let code): .money(value, currency: code)
-        case .unit(let unit): .measurement(Measurement(value: value, unit: unit))
+        switch target {
+        case .currency(let code):
+            return money(value, currency: code, text: text)
+        case .unit(let unit):
+            return Operand(quantity: .measurement(Measurement(value: value, unit: unit)), text: "\(text) \(target.name)", isAmount: true)
         }
-        return Operand(quantity: quantity, text: "\(text) \(target.name)")
     }
 
     private mutating func add(_ lhs: Quantity, _ rhs: Quantity, sign: Double) throws(CalculationError) -> Quantity {
@@ -352,18 +380,69 @@ private struct Parser {
 private func format(_ quantity: Quantity, locale: Locale) -> (display: String, raw: String) {
     let value = abs(quantity.magnitude) < 5e-11 ? 0 : quantity.magnitude
     let integerDigits = abs(value) < 1 ? 0 : Int(log10(abs(value))) + 1
-    let base = FloatingPointFormatStyle<Double>(locale: locale)
-    let style = if case .money = quantity {
-        base.precision(.fractionLength(2))
+    let formatter = NumberFormatter()
+    formatter.locale = locale
+    if case .money = quantity {
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
     } else if abs(value) >= 1e15 {
-        base.notation(.scientific).precision(.significantDigits(1...10))
+        formatter.numberStyle = .scientific
+        formatter.usesSignificantDigits = true
+        formatter.maximumSignificantDigits = 10
     } else {
-        base.precision(.fractionLength(0...max(0, 10 - integerDigits)))
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = max(0, 10 - integerDigits)
     }
     let suffix = switch quantity {
     case .money(_, let code): " \(code)"
     case .measurement(let measurement): " \(measurement.unit.symbol)"
     case .number, .percent: ""
     }
-    return (style.format(value) + suffix, style.grouping(.never).format(value))
+    let display = formatter.string(from: value as NSNumber) ?? ""
+    formatter.usesGroupingSeparator = false
+    return (display + suffix, formatter.string(from: value as NSNumber) ?? "")
+}
+
+private func name(of quantity: Quantity, locale: Locale) -> String {
+    let name = switch quantity {
+    case .money(_, let code):
+        locale.localizedString(forCurrencyCode: code) ?? code
+    case .measurement(let measurement):
+        unitName(measurement.unit, locale: locale)
+    case .number, .percent:
+        "Answer"
+    }
+    return name.prefix(1).uppercased(with: locale) + name.dropFirst()
+}
+
+private func unitName(_ unit: Dimension, locale: Locale) -> String {
+    let formatter = MeasurementFormatter()
+    formatter.locale = locale
+    formatter.unitStyle = .long
+    formatter.unitOptions = .providedUnit
+    let name = formatter.string(from: foundationTwins[unit.symbol] ?? unit)
+    guard name == unit.symbol else { return name }
+    return units.filter { $0.value === unit }.keys.max { $0.count < $1.count } ?? name
+}
+
+private func rateNote(for result: Quantity, from currencies: [String], rates: [String: Double], date: String, locale: Locale) -> String? {
+    guard case .money(_, let target) = result else { return nil }
+    let others = currencies.filter { $0 != target }
+    guard !others.isEmpty else { return nil }
+    let dateFormatter = DateFormatter()
+    dateFormatter.locale = locale
+    dateFormatter.timeZone = .gmt
+    dateFormatter.dateStyle = .medium
+    dateFormatter.timeStyle = .none
+    let day = try? Date.ISO8601FormatStyle().year().month().day().parse(date)
+    let source = day.map { ", \(dateFormatter.string(from: $0))" } ?? ""
+    guard others.count == 1, let from = rates[others[0]], let to = rates[target] else { return "ECB reference rates\(source)" }
+    let formatter = NumberFormatter()
+    formatter.locale = locale
+    formatter.numberStyle = .decimal
+    formatter.usesSignificantDigits = true
+    formatter.maximumSignificantDigits = 4
+    let rate = formatter.string(from: to / from as NSNumber) ?? ""
+    return "1 \(others[0]) = \(rate) \(target) · ECB reference rate\(source)"
 }
