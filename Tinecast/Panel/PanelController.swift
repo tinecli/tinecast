@@ -5,6 +5,7 @@ import TinecastKit
 final class PanelController: NSObject, NSWindowDelegate {
     let model: LauncherModel
     private let panel = LauncherPanel()
+    private let moreMenu = NSMenu()
     private let ratesProvider: RatesProvider
     private let systemActions = SystemActionRunner()
     private let historyFile: JSONFile<History>
@@ -33,9 +34,8 @@ final class PanelController: NSObject, NSWindowDelegate {
             run: { [weak self] item in self?.run(item) },
             reveal: { [weak self] item in self?.reveal(item) },
             cancel: { [weak self] in self?.close() },
-            openSettings: { [weak self] in self?.openSettings() },
-            registerOpenSettings: { [weak self] action in self?.openSettingsWindow = action },
-            quit: { NSApp.terminate(nil) }
+            showMoreMenu: { [weak self] anchor in self?.showMoreMenu(above: anchor) },
+            registerOpenSettings: { [weak self] action in self?.openSettingsWindow = action }
         ))
         hostingView.sizingOptions = []
         panel.contentView = hostingView
@@ -49,6 +49,9 @@ final class PanelController: NSObject, NSWindowDelegate {
                 reveal(item)
             },
         ]
+        moreMenu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
+        moreMenu.addItem(.separator())
+        moreMenu.addItem(withTitle: "Quit tinecast", action: #selector(NSApplication.terminate), keyEquivalent: "q").target = NSApp
     }
 
     func toggle() {
@@ -88,7 +91,11 @@ final class PanelController: NSObject, NSWindowDelegate {
         previousApp?.activate()
     }
 
-    private func openSettings() {
+    private func showMoreMenu(above anchor: NSView) {
+        moreMenu.popUp(positioning: nil, at: NSPoint(x: 0, y: anchor.bounds.height + moreMenu.size.height), in: anchor)
+    }
+
+    @objc private func openSettings() {
         hide()
         NSApp.activate()
         openSettingsWindow?()

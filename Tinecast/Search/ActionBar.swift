@@ -9,13 +9,24 @@ struct ActionBar: View {
     let item: Item?
     let run: (Item) -> Void
     let reveal: (Item) -> Void
+    let showMoreMenu: (NSView) -> Void
 
+    @State private var moreMenuAnchor = NSView()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         let fill = (colorScheme == .dark ? Color.white : .black).opacity(contrast == .increased ? 0.22 : 0.11)
         HStack {
+            Button { showMoreMenu(moreMenuAnchor) } label: {
+                Image(systemName: "ellipsis")
+                    .frame(width: 20, height: 20)
+            }
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.circle)
+            .focusable(false)
+            .background(MenuAnchor(view: moreMenuAnchor))
+            .accessibilityLabel("More")
             Spacer()
             if let item {
                 HStack(spacing: 14) {
@@ -48,6 +59,14 @@ struct ActionBar: View {
             "Run"
         }
     }
+}
+
+private struct MenuAnchor: NSViewRepresentable {
+    let view: NSView
+
+    func makeNSView(context: Context) -> NSView { view }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
 private struct ShortcutLabel: View {
