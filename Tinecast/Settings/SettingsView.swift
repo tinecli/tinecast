@@ -2,7 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     let model: SettingsModel
-    @State private var history = PaneHistory()
+    @State private var history = PaneHistory(start: initialPane)
     @State private var search = ""
 
     var body: some View {
@@ -12,17 +12,16 @@ struct SettingsView: View {
             detail
                 .navigationTitle(history.current.title)
                 .toolbar {
-                    ToolbarItem(placement: .navigation) {
-                        ControlGroup {
-                            Button("Back", systemImage: "chevron.left") { history.goBack() }
-                                .disabled(!history.canGoBack)
-                                .keyboardShortcut("[", modifiers: .command)
-                            Button("Forward", systemImage: "chevron.right") { history.goForward() }
-                                .disabled(!history.canGoForward)
-                                .keyboardShortcut("]", modifiers: .command)
-                        }
+                    ToolbarItemGroup(placement: .navigation) {
+                        Button("Back", systemImage: "chevron.left") { history.goBack() }
+                            .disabled(!history.canGoBack)
+                            .keyboardShortcut("[", modifiers: .command)
+                        Button("Forward", systemImage: "chevron.right") { history.goForward() }
+                            .disabled(!history.canGoForward)
+                            .keyboardShortcut("]", modifiers: .command)
                     }
                 }
+                .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
                 .safeAreaInset(edge: .top, spacing: 0) {
                     if let problem = model.fileProblem {
                         FileProblemBanner(problem: problem, open: model.openFile)
@@ -30,6 +29,13 @@ struct SettingsView: View {
                 }
         }
         .frame(minWidth: 760, idealWidth: 860, minHeight: 560, idealHeight: 640)
+    }
+
+    private static var initialPane: Pane {
+        #if DEBUG
+        if let snapshot = SettingsSnapshot.requested { return snapshot.pane }
+        #endif
+        return .general
     }
 
     private var sidebar: some View {

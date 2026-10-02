@@ -9,8 +9,15 @@ struct TinecastApp: App {
             SettingsView(model: appDelegate.settings)
         }
         .windowToolbarStyle(.unified)
-        .defaultLaunchBehavior(.suppressed)
+        .defaultLaunchBehavior(launchBehavior)
         .windowResizability(.contentMinSize)
         .defaultSize(width: 860, height: 640)
+    }
+
+    private var launchBehavior: SceneLaunchBehavior {
+        #if DEBUG
+        if SettingsSnapshot.requested != nil { return .presented }
+        #endif
+        return .suppressed
     }
 }

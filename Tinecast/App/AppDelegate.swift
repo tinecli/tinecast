@@ -3,7 +3,13 @@ import ServiceManagement
 import TinecastKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    #if DEBUG
+    private static let folder = SettingsSnapshot.requested == nil
+        ? URL.applicationSupportDirectory.appending(path: "dev.gustaf.tinecast", directoryHint: .isDirectory)
+        : URL.temporaryDirectory.appending(path: "tinecast-snapshot", directoryHint: .isDirectory)
+    #else
     private static let folder = URL.applicationSupportDirectory.appending(path: "dev.gustaf.tinecast", directoryHint: .isDirectory)
+    #endif
     private static let settingsURL = folder.appending(path: "settings.json")
 
     let settings: SettingsModel
@@ -24,6 +30,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        #if DEBUG
+        if let snapshot = SettingsSnapshot.requested {
+            Task { await snapshot.capture() }
+            return
+        }
+        #endif
         try? FileManager.default.createDirectory(at: Self.folder, withIntermediateDirectories: true)
         appsProvider = AppsProvider { [panel, settings] apps in
             panel.model.apps = apps

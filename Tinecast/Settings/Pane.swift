@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum Pane: Hashable {
+enum Pane: String {
     case general, permissions, applications, commands, systemActions, files, calculator, history
 
     static let sidebarGroups: [(header: String?, panes: [Pane])] = [
@@ -65,8 +65,12 @@ enum Pane: Hashable {
 }
 
 struct PaneHistory {
-    private var visited: [Pane] = [.general]
+    private var visited: [Pane]
     private var position = 0
+
+    init(start: Pane = .general) {
+        visited = [start]
+    }
 
     var current: Pane { visited[position] }
     var canGoBack: Bool { position > 0 }
@@ -101,9 +105,12 @@ struct PaneTile: View {
             }
             .overlay {
                 Image(systemName: symbol)
-                    .font(.system(size: size * 0.55, weight: .medium))
+                    .resizable()
+                    .scaledToFit()
+                    .fontWeight(.regular)
                     .symbolRenderingMode(.monochrome)
                     .foregroundStyle(.white)
+                    .frame(width: size * 0.6, height: size * 0.6)
             }
             .frame(width: size, height: size)
             .accessibilityHidden(true)
