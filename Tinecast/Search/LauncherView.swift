@@ -35,11 +35,11 @@ struct LauncherView: View {
     let reveal: (Item) -> Void
     let cancel: () -> Void
     let showMoreMenu: (NSView) -> Void
-    let registerOpenSettings: (OpenSettingsAction) -> Void
+    let registerOpenSettings: (OpenWindowAction) -> Void
 
     @FocusState private var isSearchFocused: Bool
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.openSettings) private var openSettingsWindow
+    @Environment(\.openWindow) private var openSettingsWindow
 
     private var resultsHeight: CGFloat {
         if !model.config.compact { return ResultsList.maximumContentHeight }

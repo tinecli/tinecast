@@ -11,7 +11,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     private let historyFile: JSONFile<History>
     private let frecencyFile: JSONFile<Frecency>
     private var previousApp: NSRunningApplication?
-    private var openSettingsWindow: OpenSettingsAction?
+    private var openSettingsWindow: OpenWindowAction?
 
     init(folder: URL, settings: SettingsModel) {
         historyFile = JSONFile(url: folder.appending(path: "history.json"))
@@ -98,7 +98,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     @objc private func openSettings() {
         hide()
         NSApp.activate()
-        openSettingsWindow?()
+        openSettingsWindow?(id: "settings")
     }
 
     private func run(_ item: Item) {
