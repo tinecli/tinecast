@@ -13,6 +13,8 @@ struct SettingsSnapshot {
     let pane: Pane
     let config: Config?
     let presentation: Presentation?
+    let search: String?
+    let reveal: Int?
 
     private init?() {
         let defaults = UserDefaults.standard
@@ -21,6 +23,8 @@ struct SettingsSnapshot {
         pane = defaults.string(forKey: "settingsPane").flatMap(Pane.init(rawValue:)) ?? .general
         config = defaults.string(forKey: "settingsConfig").flatMap { try? Config(json: Data(contentsOf: URL(filePath: $0))) }
         presentation = defaults.string(forKey: "settingsPresent").flatMap(Presentation.init(rawValue:))
+        search = defaults.string(forKey: "settingsSearch")
+        reveal = defaults.object(forKey: "settingsReveal") == nil ? nil : defaults.integer(forKey: "settingsReveal")
     }
 
     func capture() async {

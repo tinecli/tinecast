@@ -12,13 +12,16 @@ struct CalculatorPane: View {
                 PaneHeader(pane: .calculator)
             }
             Section("Exchange Rates") {
-                LabeledContent("Source", value: "European Central Bank")
-                LabeledContent("Rates From") {
+                LabeledContent(SettingRow.rateSource.label, value: "European Central Bank")
+                    .modifier(SearchAnchor(id: SettingRow.rateSource.rawValue))
+                LabeledContent(SettingRow.ratesFrom.label) {
                     Text(rates.map { (try? Date.ISO8601FormatStyle().year().month().day().parse($0.date))?.formatted(date: .long, time: .omitted) ?? $0.date } ?? "Not Downloaded")
                 }
-                LabeledContent("Last Updated") {
+                .modifier(SearchAnchor(id: SettingRow.ratesFrom.rawValue))
+                LabeledContent(SettingRow.lastUpdated.label) {
                     Text(rates.map { $0.fetchedAt.formatted(.relative(presentation: .named)) } ?? "Never")
                 }
+                .modifier(SearchAnchor(id: SettingRow.lastUpdated.rawValue))
                 HStack(spacing: 8) {
                     if refreshFailed {
                         Text("Couldn’t refresh. Check your internet connection.")
@@ -31,9 +34,10 @@ struct CalculatorPane: View {
                             .controlSize(.small)
                             .accessibilityLabel("Refreshing")
                     }
-                    Button("Refresh Now", action: refresh)
+                    Button(SettingRow.refreshRates.label, action: refresh)
                         .disabled(isRefreshing)
                 }
+                .modifier(SearchAnchor(id: SettingRow.refreshRates.rawValue))
             }
         }
         .formStyle(.grouped)

@@ -12,13 +12,14 @@ struct HistoryPane: View {
             }
             Section {
                 LabeledContent {
-                    TextField("Ignore Searches Matching", text: historyIgnore, prompt: Text("Regular Expression"))
+                    TextField(SettingRow.historyIgnore.label, text: historyIgnore, prompt: Text("Regular Expression"))
                         .labelsHidden()
                         .font(.body.monospaced())
                 } label: {
-                    Text("Ignore Searches Matching")
+                    Text(SettingRow.historyIgnore.label)
                     Text("Matching searches aren’t saved or learned from.")
                 }
+                .modifier(SearchAnchor(id: SettingRow.historyIgnore.rawValue))
                 if let problem = model.config.historyIgnoreProblem {
                     Text(problem)
                         .font(.callout)
@@ -26,15 +27,17 @@ struct HistoryPane: View {
                 }
             }
             Section {
-                LabeledContent("Search History") {
+                LabeledContent(SettingRow.searchHistory.label) {
                     Button("Clear Search History…") { isConfirmingClear = true }
                 }
+                .modifier(SearchAnchor(id: SettingRow.searchHistory.rawValue))
                 LabeledContent {
                     Button("Reset Suggestions…") { isConfirmingReset = true }
                 } label: {
-                    Text("Suggestions")
+                    Text(SettingRow.suggestions.label)
                     Text("Recent items and the ranking learned from what you open.")
                 }
+                .modifier(SearchAnchor(id: SettingRow.suggestions.rawValue))
             }
         }
         .formStyle(.grouped)

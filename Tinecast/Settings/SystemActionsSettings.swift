@@ -13,6 +13,7 @@ struct SystemActionsSettings: View {
     let model: SettingsModel
     @State private var filter = ""
     @State private var scope = ItemScope.all
+    @Environment(\.searchReveal) private var reveal
     @State private var sections: [(title: String, rows: [ItemRowValue])] = []
 
     var body: some View {
@@ -31,6 +32,7 @@ struct SystemActionsSettings: View {
                                         .symbolVariant(.fill)
                                 }
                             }
+                            .modifier(SearchAnchor(id: row.id))
                         }
                     }
                 }
@@ -44,9 +46,16 @@ struct SystemActionsSettings: View {
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .onChange(of: filter, initial: true, updateSections)
+        .onChange(of: reveal, initial: true, applyRevealFilter)
         .onChange(of: scope, updateSections)
         .onChange(of: model.config.aliases, updateSections)
         .onChange(of: model.config.hiddenItems, updateSections)
+    }
+
+    private func applyRevealFilter() {
+        guard let revealed = reveal?.filter else { return }
+        filter = revealed
+        scope = .all
     }
 
     @ViewBuilder private var emptyResult: some View {

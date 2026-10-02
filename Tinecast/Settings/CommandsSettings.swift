@@ -15,7 +15,8 @@ struct CommandsSettings: View {
                     HStack {
                         PaneHeader(pane: .commands)
                         Spacer(minLength: 12)
-                        Button("Add Command…", action: add)
+                        Button(SettingRow.addCommand.label, action: add)
+                            .modifier(SearchAnchor(id: SettingRow.addCommand.rawValue))
                     }
                 }
                 SettingsCard(title: "Your Commands") {
@@ -32,6 +33,7 @@ struct CommandsSettings: View {
                             duplicate: { model.duplicateCommand(command) },
                             delete: { deleting = command }
                         )
+                        .modifier(SearchAnchor(id: command.item.id))
                     }
                 }
             }

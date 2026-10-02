@@ -9,12 +9,14 @@ struct FilesPane: View {
                 SettingsCard {
                     PaneHeader(pane: .files)
                 }
-                SettingsCard(title: "Search In") {
-                    FolderList(title: "Search In", paths: $model.config.fileSearch.folders)
+                SettingsCard(title: SettingRow.searchIn.label) {
+                    FolderList(title: SettingRow.searchIn.label, paths: $model.config.fileSearch.folders)
                 }
-                SettingsCard(title: "Exclude") {
-                    FolderList(title: "Exclude", paths: $model.config.fileSearch.exclusions)
+                .modifier(SearchAnchor(id: SettingRow.searchIn.rawValue))
+                SettingsCard(title: SettingRow.exclude.label) {
+                    FolderList(title: SettingRow.exclude.label, paths: $model.config.fileSearch.exclusions)
                 }
+                .modifier(SearchAnchor(id: SettingRow.exclude.rawValue))
             }
             .padding(20)
         }

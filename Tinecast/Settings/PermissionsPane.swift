@@ -63,24 +63,24 @@ struct PermissionsPane: View {
                 PaneHeader(pane: .permissions)
             }
             Section {
-                PermissionRow(title: "Accessibility", reason: "Lock Screen and media keys.", status: accessibility) {
+                PermissionRow(row: .accessibility, reason: "Lock Screen and media keys.", status: accessibility) {
                     if accessibility != .allowed {
                         Button("Allow…", action: requestAccessibility)
                     }
                 }
             }
             Section {
-                PermissionRow(title: "Automation: System Events", reason: "Restart, Shut Down, Log Out and Dark Mode.", status: systemEvents) {
+                PermissionRow(row: .systemEventsAutomation, reason: "Restart, Shut Down, Log Out and Dark Mode.", status: systemEvents) {
                     automationButton(for: systemEventsID, status: systemEvents)
                 }
             }
             Section {
-                PermissionRow(title: "Automation: Finder", reason: "Trash and Eject.", status: finder) {
+                PermissionRow(row: .finderAutomation, reason: "Trash and Eject.", status: finder) {
                     automationButton(for: finderID, status: finder)
                 }
             }
             Section {
-                PermissionRow(title: "Open at Login", reason: "Starts tinecast when you log in.", status: loginItem) {
+                PermissionRow(row: .loginItem, reason: "Starts tinecast when you log in.", status: loginItem) {
                     if loginItem == .needsApproval {
                         Button("Open System Settings…") { SMAppService.openSystemSettingsLoginItems() }
                     }
@@ -129,7 +129,7 @@ struct PermissionsPane: View {
 }
 
 private struct PermissionRow<Action: View>: View {
-    let title: String
+    let row: SettingRow
     let reason: String
     let status: PermissionStatus?
     @ViewBuilder let action: Action
@@ -152,8 +152,9 @@ private struct PermissionRow<Action: View>: View {
             .lineLimit(1)
             .fixedSize()
         } label: {
-            Text(title)
+            Text(row.label)
             Text(reason)
         }
+        .modifier(SearchAnchor(id: row.rawValue))
     }
 }

@@ -4,6 +4,7 @@ struct ApplicationsSettings: View {
     let model: SettingsModel
     @State private var filter = ""
     @State private var scope = ItemScope.all
+    @Environment(\.searchReveal) private var reveal
     @State private var rows: [ItemRowValue] = []
 
     var body: some View {
@@ -23,6 +24,7 @@ struct ApplicationsSettings: View {
                             ItemRow(value: row, model: model) {
                                 ItemIcon(icon: row.icon)
                             }
+                            .modifier(SearchAnchor(id: row.id))
                         }
                     }
                 }
@@ -31,10 +33,17 @@ struct ApplicationsSettings: View {
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .onChange(of: filter, initial: true, updateRows)
+        .onChange(of: reveal, initial: true, applyRevealFilter)
         .onChange(of: scope, updateRows)
         .onChange(of: model.applications, updateRows)
         .onChange(of: model.config.aliases, updateRows)
         .onChange(of: model.config.hiddenItems, updateRows)
+    }
+
+    private func applyRevealFilter() {
+        guard let revealed = reveal?.filter else { return }
+        filter = revealed
+        scope = .all
     }
 
     @ViewBuilder private var emptyResult: some View {

@@ -23,42 +23,42 @@ enum Pane: String {
         case .general: (
             "General", "gearshape.fill", .gray,
             "Choose how tinecast opens and behaves.",
-            ["Global Shortcut", "Open tinecast", "Hotkey", "Keyboard Shortcut", "Open at Login", "Clear Search After", "Compact Bar", "Advanced", "settings.json"]
+            []
         )
         case .permissions: (
             "Permissions", "hand.raised.fill", .blue,
             "Allow access for actions that control your Mac.",
-            ["Privacy", "Accessibility", "Automation", "System Events", "Finder", "Open at Login"]
+            ["Privacy", "Automation"]
         )
         case .applications: (
             "Applications", "square.grid.2x2.fill", .blue,
             "Give apps an alias or hide them from search.",
-            ["Apps", "Alias", "Hide", "Show in Search"]
+            ["Apps", "Alias", "Hide"]
         )
         case .commands: (
             "Commands", "terminal.fill", Color(white: 0.2),
             "Run your own commands from tinecast.",
-            ["Shell", "Script", "Terminal", "Alias", "Add Command"]
+            ["Shell", "Script", "Terminal", "Alias"]
         )
         case .systemActions: (
             "System Actions", "bolt.fill", .orange,
             "Actions that control your Mac.",
-            ["Lock Screen", "Sleep", "Restart", "Shut Down", "Log Out", "Dark Mode", "Trash", "Eject", "Volume", "Alias", "Hide"]
+            ["Power", "Media", "Alias", "Hide"]
         )
         case .files: (
             "Files", "folder.fill", .blue,
             "Choose where file search looks.",
-            ["File Search", "Folders", "Search In", "Exclude"]
+            ["File Search", "Folders"]
         )
         case .calculator: (
             "Calculator", "plus.forwardslash.minus", Color(white: 0.4),
             "Exchange rates for currency conversion.",
-            ["Exchange Rates", "Currency", "Source", "European Central Bank", "Rates From", "Last Updated", "Refresh Now"]
+            ["Exchange Rates", "Currency"]
         )
         case .history: (
             "History", "clock.arrow.circlepath", .purple,
             "Control what tinecast remembers.",
-            ["Ignore Searches Matching", "Regular Expression", "Clear Search History", "Reset Suggestions", "Ranking", "Privacy"]
+            ["Privacy"]
         )
         }
     }

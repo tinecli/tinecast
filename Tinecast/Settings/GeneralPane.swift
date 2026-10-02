@@ -13,9 +13,10 @@ struct GeneralPane: View {
                 PaneHeader(pane: .general)
             }
             Section("Global Shortcut") {
-                LabeledContent("Open tinecast") {
+                LabeledContent(SettingRow.hotkey.label) {
                     ShortcutRecorder(combination: $model.config.hotkey)
                 }
+                .modifier(SearchAnchor(id: SettingRow.hotkey.rawValue))
                 if !model.isHotkeyRegistered {
                     Text("\(model.config.hotkey.displayName) is used by another app or a system shortcut. Choose another.")
                         .font(.callout)
@@ -23,8 +24,9 @@ struct GeneralPane: View {
                 }
             }
             Section("General") {
-                Toggle("Open at Login", isOn: $model.config.launchAtLogin)
-                Picker("Clear Search After", selection: $model.config.reopenTimeout) {
+                Toggle(SettingRow.openAtLogin.label, isOn: $model.config.launchAtLogin)
+                    .modifier(SearchAnchor(id: SettingRow.openAtLogin.rawValue))
+                Picker(SettingRow.clearSearchAfter.label, selection: $model.config.reopenTimeout) {
                     ForEach(Self.clearSearchDelays, id: \.seconds) { option in
                         Text(option.title).tag(option.seconds)
                     }
@@ -33,15 +35,18 @@ struct GeneralPane: View {
                             .tag(model.config.reopenTimeout)
                     }
                 }
+                .modifier(SearchAnchor(id: SettingRow.clearSearchAfter.rawValue))
                 Toggle(isOn: $model.config.compact) {
-                    Text("Compact Bar")
+                    Text(SettingRow.compactBar.label)
                     Text("A slim search bar that expands as you type.")
                 }
+                .modifier(SearchAnchor(id: SettingRow.compactBar.rawValue))
             }
             Section("Advanced") {
-                LabeledContent("settings.json") {
+                LabeledContent(SettingRow.settingsFile.label) {
                     Button("Open", action: model.openFile)
                 }
+                .modifier(SearchAnchor(id: SettingRow.settingsFile.rawValue))
             }
         }
         .formStyle(.grouped)

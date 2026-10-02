@@ -33,6 +33,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        appsProvider = AppsProvider { [panel, settings] apps in
+            panel.model.apps = apps
+            settings.apps = apps
+        }
         #if DEBUG
         if let snapshot = SettingsSnapshot.requested {
             Task { await snapshot.capture() }
@@ -40,10 +44,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         #endif
         try? FileManager.default.createDirectory(at: Self.folder, withIntermediateDirectories: true)
-        appsProvider = AppsProvider { [panel, settings] apps in
-            panel.model.apps = apps
-            settings.apps = apps
-        }
         configWatcher = ConfigWatcher(
             url: Self.settingsURL,
             onReload: { [weak self] config in self?.apply(config) },
