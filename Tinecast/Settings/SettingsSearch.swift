@@ -35,7 +35,7 @@ extension SettingsModel {
         ].flatMap { source in
             source.items.compactMap { item in
                 matchScore(query: query, title: item.title, keywords: item.keywords, alias: aliases[item.id]).map {
-                    (result: SearchResult(pane: source.pane, title: item.title, icon: item.icon, anchor: item.id, filter: source.filtersByTitle ? item.title : nil), score: $0)
+                    (result: SearchResult(pane: source.pane, title: item.title, icon: item.icon, anchor: item.id, filter: source.filtersByTitle ? "" : nil), score: $0)
                 }
             }
         }

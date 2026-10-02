@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct SettingsView: View {
@@ -14,6 +15,7 @@ struct SettingsView: View {
         } detail: {
             ScrollViewReader { proxy in
                 detail
+                    .scrollEdgeEffectStyle(.soft, for: .top)
                     .environment(\.searchReveal, reveal)
                     .task(id: reveal) { await scroll(proxy) }
             }
@@ -28,7 +30,6 @@ struct SettingsView: View {
                         .keyboardShortcut("]", modifiers: .command)
                 }
             }
-            .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
             .safeAreaInset(edge: .top, spacing: 0) {
                 if let problem = model.fileProblem {
                     FileProblemBanner(problem: problem, open: model.openFile)
@@ -36,6 +37,7 @@ struct SettingsView: View {
             }
         }
         .frame(minWidth: 760, idealWidth: 860, minHeight: 560, idealHeight: 640)
+        .background(TitlebarSeparatorRemover())
     }
 
     private static var initialPane: Pane {
@@ -223,4 +225,14 @@ private struct FileProblemBanner: View {
         .padding(.horizontal, 20)
         .padding(.top, 12)
     }
+}
+
+private struct TitlebarSeparatorRemover: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { view.window?.titlebarSeparatorStyle = .none }
+        return view
+    }
+
+    func updateNSView(_ view: NSView, context: Context) {}
 }
