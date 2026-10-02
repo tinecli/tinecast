@@ -22,12 +22,13 @@ struct CommandEditor: View {
                 .padding(.top, 20)
             Form {
                 Section {
-                    LabeledContent("Name") {
-                        HStack(spacing: 8) {
-                            TextField("Name", text: $draft.name, prompt: Text("Required"))
-                                .labelsHidden()
-                            SymbolButton(symbol: $draft.symbol)
-                        }
+                    HStack(spacing: 12) {
+                        Text("Name")
+                        TextField("Name", text: $draft.name, prompt: Text("Required"))
+                            .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.leading)
+                            .labelsHidden()
+                        SymbolButton(symbol: $draft.symbol)
                     }
                 }
                 Section {
@@ -69,7 +70,7 @@ struct CommandEditor: View {
             }
             .padding([.horizontal, .bottom], 20)
         }
-        .frame(width: 460, height: 480)
+        .frame(width: 460, height: 500)
         .onKeyPress(.return, phases: .down) { press in
             guard press.modifiers.contains(.command), draft.problem == nil else { return .ignored }
             commit()

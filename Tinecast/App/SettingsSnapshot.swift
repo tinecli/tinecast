@@ -1,16 +1,26 @@
 #if DEBUG
 import AppKit
+import TinecastKit
 
 struct SettingsSnapshot {
+    enum Presentation: String {
+        case editor, picker
+    }
+
     static let requested = SettingsSnapshot()
 
     let output: URL
     let pane: Pane
+    let config: Config?
+    let presentation: Presentation?
 
     private init?() {
-        guard let path = UserDefaults.standard.string(forKey: "settingsSnapshot") else { return nil }
+        let defaults = UserDefaults.standard
+        guard let path = defaults.string(forKey: "settingsSnapshot") else { return nil }
         output = URL(filePath: path)
-        pane = UserDefaults.standard.string(forKey: "settingsPane").flatMap(Pane.init(rawValue:)) ?? .general
+        pane = defaults.string(forKey: "settingsPane").flatMap(Pane.init(rawValue:)) ?? .general
+        config = defaults.string(forKey: "settingsConfig").flatMap { try? Config(json: Data(contentsOf: URL(filePath: $0))) }
+        presentation = defaults.string(forKey: "settingsPresent").flatMap(Presentation.init(rawValue:))
     }
 
     func capture() async {
@@ -18,20 +28,30 @@ struct SettingsSnapshot {
         let window = await Self.settingsWindow()
         window.setFrameAutosaveName("")
         window.isRestorable = false
-        window.setFrameOrigin(NSPoint(x: -4000, y: 0))
+        if presentation != .picker { window.setFrameOrigin(NSPoint(x: -4000, y: 0)) }
         try? await Task.sleep(for: .seconds(1.5))
-        if let image = Self.windowImage(window) {
+        let target = switch presentation {
+        case .editor: window.attachedSheet
+        case .picker: NSApp.windows.first { $0.isVisible && $0.className.contains("Popover") }
+        case nil: window
+        }
+        guard let target else { exit(1) }
+        let image = presentation == .picker
+            ? Self.image(of: target, bounds: target.frame, options: [.optionIncludingWindow, .optionOnScreenBelowWindow])
+            : Self.image(of: target, bounds: nil, options: .optionIncludingWindow)
+        if let image {
             try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: output)
         }
-        NSApp.terminate(nil)
+        exit(0)
     }
 
     // cacheDisplay skips Liquid Glass; CGWindowListCreateImage is SDK-obsoleted but still exported and captures own windows without Screen Recording.
-    private static func windowImage(_ window: NSWindow) -> CGImage? {
+    private static func image(of window: NSWindow, bounds frame: NSRect?, options: CGWindowListOption) -> CGImage? {
         typealias CreateImage = @convention(c) (CGRect, CGWindowListOption, CGWindowID, CGWindowImageOption) -> Unmanaged<CGImage>?
-        guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "CGWindowListCreateImage") else { return nil }
+        guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "CGWindowListCreateImage"), let screen = NSScreen.screens.first else { return nil }
         let create = unsafeBitCast(symbol, to: CreateImage.self)
-        return create(.null, .optionIncludingWindow, CGWindowID(window.windowNumber), [.boundsIgnoreFraming, .bestResolution])?.takeRetainedValue()
+        let bounds = frame.map { CGRect(x: $0.minX, y: screen.frame.maxY - $0.maxY, width: $0.width, height: $0.height) } ?? .null
+        return create(bounds, options, CGWindowID(window.windowNumber), [.boundsIgnoreFraming, .bestResolution])?.takeRetainedValue()
     }
 
     private static func settingsWindow() async -> NSWindow {

@@ -7,7 +7,6 @@ struct CommandRow: View {
     let edit: () -> Void
     let duplicate: () -> Void
     let delete: () -> Void
-    @State private var isHovering = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -32,20 +31,13 @@ struct CommandRow: View {
                     .background(.quaternary, in: .capsule)
                     .accessibilityLabel("Alias \(alias)")
             }
-            Menu {
-                actions
-            } label: {
-                Image(systemName: "ellipsis")
-            }
-            .menuStyle(.button)
-            .buttonStyle(.borderless)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .opacity(isHovering ? 1 : 0)
-            .accessibilityLabel("Actions for \(command.name)")
+            Button("Edit \(command.name)", systemImage: "info.circle", action: edit)
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
+                .imageScale(.large)
+                .help("Edit")
         }
         .contentShape(.rect)
-        .onHover { isHovering = $0 }
         .onTapGesture(count: 2, perform: edit)
         .contextMenu { actions }
         .accessibilityActions { actions }

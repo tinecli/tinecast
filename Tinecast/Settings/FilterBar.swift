@@ -7,23 +7,7 @@ struct FilterBar: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-                TextField(prompt, text: $text)
-                    .textFieldStyle(.plain)
-                if !text.isEmpty {
-                    Button("Clear Filter", systemImage: "xmark.circle.fill") { text = "" }
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.secondary)
-                        .help("Clear Filter")
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(.fill.tertiary, in: .capsule)
+            SearchField(prompt: prompt, text: $text)
             Picker("Show", selection: $scope) {
                 ForEach(ItemScope.allCases) { scope in
                     Text(scope.rawValue).tag(scope)
@@ -33,5 +17,31 @@ struct FilterBar: View {
             .labelsHidden()
             .fixedSize()
         }
+    }
+}
+
+struct SearchField: View {
+    let prompt: String
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            TextField(prompt, text: $text)
+                .textFieldStyle(.plain)
+                .multilineTextAlignment(.leading)
+            if !text.isEmpty {
+                Button("Clear Search", systemImage: "xmark.circle.fill") { text = "" }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .help("Clear Search")
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.fill.tertiary, in: .capsule)
     }
 }

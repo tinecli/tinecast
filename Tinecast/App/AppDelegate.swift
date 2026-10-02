@@ -27,6 +27,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         super.init()
         settings.clearHistory = { [panel] in panel.clearHistory() }
         settings.resetRanking = { [panel] in panel.resetRanking() }
+        #if DEBUG
+        if let config = SettingsSnapshot.requested?.config { settings.adopt(config) }
+        #endif
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
