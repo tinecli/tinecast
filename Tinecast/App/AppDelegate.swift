@@ -32,7 +32,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
     }
 
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        ProcessInfo.processInfo.disableAutomaticTermination("tinecast waits for its hotkey")
         appsProvider = AppsProvider { [panel, settings] apps in
             panel.model.apps = apps
             settings.apps = apps
