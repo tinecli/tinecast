@@ -2,11 +2,17 @@ import Carbon.HIToolbox
 import Foundation
 
 public struct KeyCombination: Codable, Equatable, Sendable, CustomStringConvertible {
-    private static let modifiers: [(names: Set<String>, token: String, displayName: String, glyph: String, carbonFlag: Int)] = [
-        (["ctrl", "control"], "ctrl", "Control", "⌃", controlKey),
-        (["opt", "option", "alt"], "opt", "Option", "⌥", optionKey),
-        (["shift"], "shift", "Shift", "⇧", shiftKey),
-        (["cmd", "command"], "cmd", "Command", "⌘", cmdKey),
+    private static let modifiers: [(names: Set<String>, token: String, displayName: String, glyph: String, carbonFlag: Int, eventFlag: Int)] = [
+        (["ctrl", "control"], "ctrl", "Control", "⌃", controlKey, 0x40000),
+        (["opt", "option", "alt"], "opt", "Option", "⌥", optionKey, 0x80000),
+        (["shift"], "shift", "Shift", "⇧", shiftKey, 0x20000),
+        (["cmd", "command"], "cmd", "Command", "⌘", cmdKey, 0x100000),
+    ]
+    private static let systemShortcuts: [(id: String, owner: String, keyCode: Int, eventFlags: Int)] = [
+        ("60", "Input Sources", kVK_Space, 0x40000),
+        ("61", "Input Sources", kVK_Space, 0xC0000),
+        ("64", "Spotlight", kVK_Space, 0x100000),
+        ("65", "Spotlight", kVK_Space, 0x180000),
     ]
     private static let keyGlyphs = ["return": "↩", "tab": "⇥"]
 
@@ -54,6 +60,17 @@ public struct KeyCombination: Codable, Equatable, Sendable, CustomStringConverti
         guard let keyName = Self.keys.first(where: { $0.value.keyCode == keyCode })?.key else { return nil }
         let tokens = Self.modifiers.filter { carbonModifiers & $0.carbonFlag != 0 }.map(\.token)
         self.init((tokens + [keyName]).joined(separator: "+"))
+    }
+
+    public func systemShortcutOwner(in symbolicHotKeys: [String: Any]) -> String? {
+        let eventFlags = Self.modifiers.filter { carbonModifiers & $0.carbonFlag != 0 }.reduce(0) { $0 | $1.eventFlag }
+        return Self.systemShortcuts.first { shortcut in
+            guard let entry = symbolicHotKeys[shortcut.id] as? [String: Any] else {
+                return shortcut.keyCode == keyCode && shortcut.eventFlags == eventFlags
+            }
+            let parameters = (entry["value"] as? [String: Any])?["parameters"] as? [Int]
+            return entry["enabled"] as? Int == 1 && parameters.map { Array($0.dropFirst()) } == [keyCode, eventFlags]
+        }?.owner
     }
 
     public init(from decoder: any Decoder) throws {

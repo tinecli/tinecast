@@ -40,6 +40,7 @@ struct ShortcutRecorder: View {
                         .strokeBorder(monitor == nil ? AnyShapeStyle(.separator) : AnyShapeStyle(.tint), lineWidth: monitor == nil ? 1 : 2)
                 }
                 .contentShape(.rect)
+                .contentShape(.focusEffect, .rect(cornerRadius: 6, style: .continuous))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Hotkey")

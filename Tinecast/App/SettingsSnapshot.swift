@@ -10,6 +10,7 @@ struct SettingsSnapshot {
     static let requested = SettingsSnapshot()
 
     let output: URL
+    let windowID: String
     let pane: Pane
     let config: Config?
     let presentation: Presentation?
@@ -20,7 +21,9 @@ struct SettingsSnapshot {
         let defaults = UserDefaults.standard
         guard let path = defaults.string(forKey: "settingsSnapshot") else { return nil }
         output = URL(filePath: path)
-        pane = defaults.string(forKey: "settingsPane").flatMap(Pane.init(rawValue:)) ?? .general
+        let paneName = defaults.string(forKey: "settingsPane")
+        windowID = paneName == "welcome" ? "welcome" : "settings"
+        pane = paneName.flatMap(Pane.init(rawValue:)) ?? .general
         config = defaults.string(forKey: "settingsConfig").flatMap { try? Config(json: Data(contentsOf: URL(filePath: $0))) }
         presentation = defaults.string(forKey: "settingsPresent").flatMap(Presentation.init(rawValue:))
         search = defaults.string(forKey: "settingsSearch")
@@ -29,7 +32,7 @@ struct SettingsSnapshot {
 
     func capture() async {
         if UserDefaults.standard.string(forKey: "AppleInterfaceStyle") == "Dark" { NSApp.appearance = NSAppearance(named: .darkAqua) }
-        let window = await Self.settingsWindow()
+        let window = await Self.window(id: windowID)
         window.setFrameAutosaveName("")
         window.isRestorable = false
         if presentation != .picker { window.setFrameOrigin(NSPoint(x: -4000, y: 0)) }
@@ -58,9 +61,9 @@ struct SettingsSnapshot {
         return create(bounds, options, CGWindowID(window.windowNumber), [.boundsIgnoreFraming, .bestResolution])?.takeRetainedValue()
     }
 
-    private static func settingsWindow() async -> NSWindow {
+    private static func window(id: String) async -> NSWindow {
         while true {
-            if let window = NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix("settings") == true }) { return window }
+            if let window = NSApp.windows.first(where: { $0.identifier?.rawValue.hasPrefix(id) == true }) { return window }
             try? await Task.sleep(for: .milliseconds(20))
         }
     }

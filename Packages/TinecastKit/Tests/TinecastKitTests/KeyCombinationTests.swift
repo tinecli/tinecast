@@ -62,3 +62,20 @@ import TinecastKit
     #expect(KeyCombination("ctrl+space")?.keycaps == ["⌃", "Space"])
     #expect(KeyCombination("opt+return")?.keycaps == ["⌥", "↩"])
 }
+
+@Test func findsTheSystemShortcutThatOwnsACombination() throws {
+    let controlSpace = try #require(KeyCombination("ctrl+space"))
+    let commandSpace = try #require(KeyCombination("cmd+space"))
+    let optionSpace = try #require(KeyCombination("opt+space"))
+    let remapped: [String: Any] = [
+        "60": ["enabled": 1, "value": ["parameters": [32, 49, 0x80000], "type": "standard"]],
+        "64": ["enabled": 0, "value": ["parameters": [32, 49, 0x100000], "type": "standard"]],
+    ]
+
+    #expect(controlSpace.systemShortcutOwner(in: [:]) == "Input Sources")
+    #expect(commandSpace.systemShortcutOwner(in: [:]) == "Spotlight")
+    #expect(controlSpace.systemShortcutOwner(in: remapped) == nil)
+    #expect(commandSpace.systemShortcutOwner(in: remapped) == nil)
+    #expect(optionSpace.systemShortcutOwner(in: remapped) == "Input Sources")
+    #expect(KeyCombination("ctrl+opt+k")?.systemShortcutOwner(in: [:]) == nil)
+}
