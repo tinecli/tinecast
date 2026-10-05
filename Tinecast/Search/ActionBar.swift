@@ -88,12 +88,12 @@ private struct ShortcutLabel: View {
             HStack(spacing: 3) {
                 ForEach(keys, id: \.self) { key in
                     Text(key)
-                        .font(.callout.weight(.medium))
+                        .font(.subheadline.weight(.medium))
                         .foregroundStyle(.secondary)
-                        .frame(minWidth: 20, minHeight: 20)
-                        .padding(.horizontal, key.count > 1 ? 4 : 0)
+                        .frame(minWidth: 17, minHeight: 17)
+                        .padding(.horizontal, key.count > 1 ? 3 : 0)
                         .overlay {
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
                                 .strokeBorder(.tertiary, lineWidth: 1)
                         }
                 }
