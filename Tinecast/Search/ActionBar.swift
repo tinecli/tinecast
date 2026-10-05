@@ -79,19 +79,27 @@ private struct MenuAnchor: NSViewRepresentable {
 }
 
 private struct ShortcutLabel: View {
+    private static let symbols = ["↵": "return", "⌘": "command", "⇧": "shift", "⌥": "option", "⌃": "control"]
+
     let title: String
     let keys: [String]
 
     var body: some View {
         HStack(spacing: 8) {
             Text(title)
-            HStack(spacing: 3) {
+            HStack(spacing: 4) {
                 ForEach(keys, id: \.self) { key in
-                    Text(key)
-                        .font(.subheadline.weight(.medium))
+                    Group {
+                        if let symbol = Self.symbols[key] {
+                            Image(systemName: symbol)
+                        } else {
+                            Text(key)
+                        }
+                    }
+                        .font(.system(size: 8, weight: .medium, design: .monospaced))
                         .foregroundStyle(.secondary)
-                        .frame(minWidth: 17, minHeight: 17)
-                        .padding(.horizontal, key.count > 1 ? 3 : 0)
+                        .frame(minWidth: 16, minHeight: 16)
+                        .padding(.horizontal, key.count > 1 ? 4 : 0)
                         .overlay {
                             RoundedRectangle(cornerRadius: 4, style: .continuous)
                                 .strokeBorder(.tertiary, lineWidth: 1)
