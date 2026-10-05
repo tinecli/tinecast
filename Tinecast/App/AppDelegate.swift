@@ -11,6 +11,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let folder = URL.applicationSupportDirectory.appending(path: "dev.gustaf.tinecast", directoryHint: .isDirectory)
     #endif
     private static let settingsURL = folder.appending(path: "settings.json")
+    private static let lifecycleURL = folder.appending(path: "lifecycle.log")
+    private var terminationSignal: (any DispatchSourceSignal)?
 
     let settings: SettingsModel
     private let panel: PanelController
@@ -36,8 +38,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         false
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        let senderPID = NSAppleEventManager.shared().currentAppleEvent?.attributeDescriptor(forKeyword: keySenderPIDAttr)?.int32Value
+        Self.recordLifecycle(senderPID.map { "terminating, quit requested by pid \($0)" } ?? "terminating")
+    }
+
+    private static func recordLifecycle(_ event: String) {
+        let line = Data("\(Date.now.ISO8601Format()) pid \(ProcessInfo.processInfo.processIdentifier) \(event)\n".utf8)
+        guard let handle = try? FileHandle(forWritingTo: lifecycleURL) else {
+            try? line.write(to: lifecycleURL)
+            return
+        }
+        handle.seekToEndOfFile()
+        handle.write(line)
+        try? handle.close()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         ProcessInfo.processInfo.disableAutomaticTermination("tinecast waits for its hotkey")
+        Self.recordLifecycle("launched")
+        signal(SIGTERM, SIG_IGN)
+        terminationSignal = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        terminationSignal?.setEventHandler {
+            Self.recordLifecycle("received SIGTERM")
+            exit(0)
+        }
+        terminationSignal?.resume()
         appsProvider = AppsProvider { [panel, settings] apps in
             panel.model.apps = apps
             settings.apps = apps
