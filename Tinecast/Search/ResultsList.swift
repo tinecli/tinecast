@@ -72,7 +72,7 @@ struct ResultsList: View {
             if let calculation {
                 CalculatorCard(calculation: calculation, isSelected: isSelected)
             } else {
-                ResultRow(item: item, isSelected: isSelected)
+                ResultRow(item: item, alias: model.config.aliases[item.id], isSelected: isSelected)
             }
         }
         .buttonStyle(.plain)

@@ -7,6 +7,7 @@ struct ResultRow: View {
     static let horizontalPadding: CGFloat = 10
 
     let item: Item
+    let alias: String?
     let isSelected: Bool
 
     @Environment(\.colorScheme) private var colorScheme
@@ -19,8 +20,19 @@ struct ResultRow: View {
                 .frame(width: Self.iconSize, height: Self.iconSize)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
-                Text(item.title)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(item.title)
+                        .lineLimit(1)
+                    if let alias {
+                        Text(alias)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background((colorScheme == .dark ? Color.white : .black).opacity(0.08), in: .rect(cornerRadius: 5, style: .continuous))
+                            .accessibilityLabel("Alias \(alias)")
+                    }
+                }
                 if let subtitle = item.subtitle {
                     Text(subtitle)
                         .font(.callout)
