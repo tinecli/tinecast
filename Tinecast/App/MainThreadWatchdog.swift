@@ -39,11 +39,7 @@ nonisolated final class MainThreadWatchdog: @unchecked Sendable {
     private func sampleMainThread() {
         guard Date.now.timeIntervalSince(lastSample) > 60 else { return }
         lastSample = .now
-        let output = log.deletingLastPathComponent().appending(path: "stall-\(Date.now.ISO8601Format()).txt")
-        let sample = Process()
-        sample.executableURL = URL(filePath: "/usr/bin/sample")
-        sample.arguments = [String(ProcessInfo.processInfo.processIdentifier), "2", "-mayDie", "-file", output.path(percentEncoded: false)]
-        try? sample.run()
+        FileManager.default.createFile(atPath: log.deletingLastPathComponent().appending(path: "stall-now").path(percentEncoded: false), contents: nil)
     }
 
     private static func append(_ line: String, to url: URL) {
