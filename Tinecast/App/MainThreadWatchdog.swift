@@ -8,6 +8,7 @@ nonisolated final class MainThreadWatchdog: @unchecked Sendable {
     private let log: URL
     private let queue = DispatchQueue(label: "dev.gustaf.tinecast.watchdog")
     private var timer: (any DispatchSourceTimer)?
+    private var lastSample = Date.distantPast
 
     init(log: URL) {
         self.log = log
@@ -30,8 +31,19 @@ nonisolated final class MainThreadWatchdog: @unchecked Sendable {
         let semaphore = DispatchSemaphore(value: 0)
         DispatchQueue.main.async { semaphore.signal() }
         guard semaphore.wait(timeout: .now() + Self.threshold) == .timedOut else { return }
+        sampleMainThread()
         semaphore.wait()
         Self.append("\(sent.ISO8601Format()) main thread stalled for \(Int(Date.now.timeIntervalSince(sent) * 1000)) ms\n", to: log)
+    }
+
+    private func sampleMainThread() {
+        guard Date.now.timeIntervalSince(lastSample) > 60 else { return }
+        lastSample = .now
+        let output = log.deletingLastPathComponent().appending(path: "stall-\(Date.now.ISO8601Format()).txt")
+        let sample = Process()
+        sample.executableURL = URL(filePath: "/usr/bin/sample")
+        sample.arguments = [String(ProcessInfo.processInfo.processIdentifier), "2", "-mayDie", "-file", output.path(percentEncoded: false)]
+        try? sample.run()
     }
 
     private static func append(_ line: String, to url: URL) {

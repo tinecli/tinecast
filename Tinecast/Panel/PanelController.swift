@@ -150,8 +150,11 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     private func hide() {
+        let started = Date.now
         model.dismiss()
+        let dismissed = Date.now
         panel.orderOut(nil)
+        MainThreadWatchdog.shared.note("hide: model \(Int(dismissed.timeIntervalSince(started) * 1000)) ms, orderOut \(Int(Date.now.timeIntervalSince(dismissed) * 1000)) ms")
     }
 
     private func dismiss() {
