@@ -1,0 +1,22 @@
+tinecast
+Copyright 2026 Gustaf Eriksson
+
+tinecast is dual-licensed under the MIT and Apache License 2.0. The license
+texts are in LICENSE.MIT and LICENSE.APACHE.
+
+The repository also contains third-party design guidance for development, not
+part of the app. These are vendored under .claude/skills/ and each keeps its
+own MIT license in its folder:
+
+  .claude/skills/liquid-glass
+  .claude/skills/liquid-glass-motion
+  .claude/skills/apple-motion-feel
+    from https://github.com/YordiLorenzo/liquid-glass-skills,
+    Copyright (c) 2026 Yordi de Kleijn, MIT licensed.
+
+  .claude/skills/sf-symbols
+  .claude/skills/typography
+  .claude/skills/ui-review-tahoe
+  .claude/skills/appkit-swiftui-bridge
+    from https://github.com/rshankras/claude-code-apple-skills,
+    Copyright (c) 2025 Ravishankar, MIT licensed.
