@@ -33,7 +33,7 @@ struct ActionBar: View {
                     Button { run(item) } label: {
                         ShortcutLabel(title: openTitle(for: item), shortcut: "↵")
                     }
-                    if case .open = item.action {
+                    if item.kind == "File" {
                         Button { reveal(item) } label: {
                             ShortcutLabel(title: "Show in Finder", shortcut: "⌘↵")
                         }
