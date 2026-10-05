@@ -37,6 +37,18 @@ struct SettingsView: View {
             }
         }
         .frame(minWidth: 760, idealWidth: 860, minHeight: 560, idealHeight: 640)
+        .onChange(of: model.requestedPane, initial: true) {
+            guard let pane = model.requestedPane else { return }
+            history.visit(pane)
+            model.requestedPane = nil
+        }
+        .onChange(of: model.requestedReveal, initial: true) {
+            guard let result = model.requestedReveal else { return }
+            selectedResult = nil
+            history.visit(result.pane)
+            reveal = SearchReveal(result)
+            model.requestedReveal = nil
+        }
         .background(TitlebarSeparatorRemover())
     }
 

@@ -35,6 +35,8 @@ struct LauncherView: View {
     let reveal: (Item) -> Void
     let cancel: () -> Void
     let showMoreMenu: (NSView) -> Void
+    let actionsAnchor: NSView
+    let showActions: () -> Void
     let registerOpenSettings: (OpenWindowAction) -> Void
 
     @FocusState private var isSearchFocused: Bool
@@ -59,7 +61,7 @@ struct LauncherView: View {
                             model: model,
                             contentHeight: resultsHeight,
                             run: run,
-                            actionBar: ActionBar(item: model.selectedItem, run: run, reveal: reveal, showMoreMenu: showMoreMenu)
+                            actionBar: ActionBar(item: model.selectedItem, run: run, reveal: reveal, showMoreMenu: showMoreMenu, actionsAnchor: actionsAnchor, showActions: showActions)
                         )
                     }
                 }

@@ -10,6 +10,8 @@ struct ActionBar: View {
     let run: (Item) -> Void
     let reveal: (Item) -> Void
     let showMoreMenu: (NSView) -> Void
+    let actionsAnchor: NSView
+    let showActions: () -> Void
 
     @State private var moreMenuAnchor = NSView()
     @Environment(\.colorScheme) private var colorScheme
@@ -38,11 +40,15 @@ struct ActionBar: View {
                             ShortcutLabel(title: "Show in Finder", shortcut: "⌘↵")
                         }
                     }
+                    Button(action: showActions) {
+                        ShortcutLabel(title: "Actions", shortcut: "⌘K")
+                    }
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 12)
                 .frame(height: Self.controlHeight)
                 .background(fill, in: .capsule)
+                .background(MenuAnchor(view: actionsAnchor))
             }
         }
         .frame(height: Self.controlHeight)

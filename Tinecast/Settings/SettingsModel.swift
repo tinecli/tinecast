@@ -19,12 +19,15 @@ final class SettingsModel {
     private(set) var commandItems: [Item] = []
     var exchangeRates: ExchangeRates?
     var isHotkeyRegistered = true
+    var requestedPane: Pane?
+    var requestedReveal: SearchResult?
     @ObservationIgnored var apps = AppCatalog() {
         didSet { applications = apps.alphabetical }
     }
     @ObservationIgnored var refreshRates: () async -> Bool = { false }
     @ObservationIgnored var clearHistory: () -> Void = {}
     @ObservationIgnored var resetRanking: () -> Void = {}
+    @ObservationIgnored var showPanel: () -> Void = {}
     @ObservationIgnored private var saved: Config?
     @ObservationIgnored private var pendingSave: Task<Void, Never>?
 

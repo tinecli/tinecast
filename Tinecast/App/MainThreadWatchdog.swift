@@ -1,17 +1,19 @@
 import Foundation
 
 nonisolated final class MainThreadWatchdog: @unchecked Sendable {
-    static let shared = MainThreadWatchdog(log: URL.applicationSupportDirectory.appending(path: "dev.gustaf.tinecast/diagnostics.log"))
+    static let shared = UserDefaults.standard.bool(forKey: "TinecastDiagnostics")
+        ? MainThreadWatchdog(log: URL.applicationSupportDirectory.appending(path: "dev.gustaf.tinecast/diagnostics.log"))
+        : nil
     private static let interval = 0.25
     private static let threshold = 0.3
 
-    private let log: URL
+    private let log: LogFile
     private let queue = DispatchQueue(label: "dev.gustaf.tinecast.watchdog")
     private var timer: (any DispatchSourceTimer)?
     private var lastSample = Date.distantPast
 
     init(log: URL) {
-        self.log = log
+        self.log = LogFile(url: log)
     }
 
     func start() {
@@ -23,7 +25,8 @@ nonisolated final class MainThreadWatchdog: @unchecked Sendable {
     }
 
     func note(_ event: String) {
-        queue.async { [log] in Self.append("\(Date.now.ISO8601Format()) \(event)\n", to: log) }
+        let line = "\(Date.now.ISO8601Format(.init(includingFractionalSeconds: true))) \(event)\n"
+        queue.async { [log] in log.append(line) }
     }
 
     private func ping() {
@@ -33,22 +36,12 @@ nonisolated final class MainThreadWatchdog: @unchecked Sendable {
         guard semaphore.wait(timeout: .now() + Self.threshold) == .timedOut else { return }
         sampleMainThread()
         semaphore.wait()
-        Self.append("\(sent.ISO8601Format()) main thread stalled for \(Int(Date.now.timeIntervalSince(sent) * 1000)) ms\n", to: log)
+        log.append("\(sent.ISO8601Format()) main thread stalled for \(Int(Date.now.timeIntervalSince(sent) * 1000)) ms\n")
     }
 
     private func sampleMainThread() {
         guard Date.now.timeIntervalSince(lastSample) > 60 else { return }
         lastSample = .now
-        FileManager.default.createFile(atPath: log.deletingLastPathComponent().appending(path: "stall-now").path(percentEncoded: false), contents: nil)
-    }
-
-    private static func append(_ line: String, to url: URL) {
-        guard let handle = try? FileHandle(forWritingTo: url) else {
-            try? Data(line.utf8).write(to: url)
-            return
-        }
-        handle.seekToEndOfFile()
-        handle.write(Data(line.utf8))
-        try? handle.close()
+        FileManager.default.createFile(atPath: log.url.deletingLastPathComponent().appending(path: "stall-now").path(percentEncoded: false), contents: nil)
     }
 }
