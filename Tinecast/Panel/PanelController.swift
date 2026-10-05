@@ -83,7 +83,13 @@ final class PanelController: NSObject, NSWindowDelegate {
         previousApp = NSWorkspace.shared.frontmostApplication
         panel.setFrameTopLeftPoint(NSPoint(x: visible.midX - panel.frame.width / 2, y: visible.maxY - visible.height / 5 + LauncherView.margin))
         panel.makeKeyAndOrderFront(nil)
+        panel.orderFrontRegardless()
         withAnimation(.launcher) { model.present() }
+        // A non-activating panel can lose the first key request while another app activates.
+        DispatchQueue.main.async { [panel] in
+            guard panel.isVisible, !panel.isKeyWindow else { return }
+            panel.makeKeyAndOrderFront(nil)
+        }
     }
 
     private func close() {
