@@ -40,6 +40,7 @@ final class FilesProvider: NSObject {
             NSMetadataItemContentTypeKey, "com.apple.application-bundle"
         )
         query.searchScopes = fileSearch.folders.map { NSString(string: $0).standardizingPath }
+        query.valueListAttributes = [NSMetadataItemPathKey, NSMetadataItemDisplayNameKey]
         query.sortDescriptors = [
             NSSortDescriptor(key: NSMetadataItemLastUsedDateKey, ascending: false),
             NSSortDescriptor(key: NSMetadataItemDisplayNameKey, ascending: true),

@@ -132,9 +132,13 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     private func perform(_ item: Item, _ body: () -> Void) {
+        let started = Date.now
         hide()
+        let hidden = Date.now
         body()
+        let performed = Date.now
         remember(item)
+        MainThreadWatchdog.shared.note("ran \(item.title): hide \(Int(hidden.timeIntervalSince(started) * 1000)) ms, action \(Int(performed.timeIntervalSince(hidden) * 1000)) ms, remember \(Int(Date.now.timeIntervalSince(performed) * 1000)) ms, panel visible after hide: \(panel.isVisible)")
     }
 
     private func remember(_ item: Item) {

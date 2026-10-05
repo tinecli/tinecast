@@ -14,6 +14,7 @@ final class AppsProvider: NSObject {
         super.init()
         query.predicate = NSPredicate(format: "%K == %@", NSMetadataItemContentTypeKey, "com.apple.application-bundle")
         query.searchScopes = Self.folders
+        query.valueListAttributes = [NSMetadataItemPathKey, NSMetadataItemDisplayNameKey, NSMetadataItemCFBundleIdentifierKey, NSMetadataItemLastUsedDateKey]
         NotificationCenter.default.addObserver(self, selector: #selector(publish), name: .NSMetadataQueryDidFinishGathering, object: query)
         NotificationCenter.default.addObserver(self, selector: #selector(publish), name: .NSMetadataQueryDidUpdate, object: query)
         query.start()
