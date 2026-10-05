@@ -1,5 +1,5 @@
 enum SettingRow: String, CaseIterable {
-    case hotkey, openAtLogin, clearSearchAfter, compactBar, settingsFile
+    case hotkey, openAtLogin, clearSearchAfter, compactBar, version, checkForUpdates, settingsFile
     case accessibility, systemEventsAutomation, finderAutomation, loginItem
     case addCommand
     case searchIn, exclude
@@ -16,6 +16,8 @@ enum SettingRow: String, CaseIterable {
         case .openAtLogin: (.general, "Open at Login", ["Launch", "Startup"])
         case .clearSearchAfter: (.general, "Clear Search After", ["Reopen", "Timeout"])
         case .compactBar: (.general, "Compact Bar", ["Slim", "Appearance"])
+        case .version: (.general, "Version", ["Updates", "About"])
+        case .checkForUpdates: (.general, "Check for Updates", ["Updates", "Download", "Install", "Relaunch"])
         case .settingsFile: (.general, "settings.json", ["Advanced", "Config", "JSON"])
         case .accessibility: (.permissions, "Accessibility", ["Privacy", "Lock Screen", "Media Keys"])
         case .systemEventsAutomation: (.permissions, "Automation: System Events", ["Privacy", "Restart", "Shut Down", "Log Out", "Dark Mode"])

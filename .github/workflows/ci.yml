@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: Package app (ad-hoc signed)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+
+      - run: brew install xcodegen
+
+      - name: Swift tests
+        run: swift test --package-path Packages/TinecastKit
+
+      - name: Package
+        run: TINECAST_SIGN_ID="-" bash scripts/package.sh
+
+      - name: Verify bundle
+        run: |
+          set -euo pipefail
+          test -x dist/tinecast.app/Contents/MacOS/tinecast
+          test -f dist/tinecast.app/Contents/Resources/AppIcon.icns
+          test "$(lipo -archs dist/tinecast.app/Contents/MacOS/tinecast)" = "arm64"

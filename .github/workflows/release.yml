@@ -1,0 +1,136 @@
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build & release
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Preflight, every release secret is set
+        env:
+          APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          for name in APPLE_CERT_P12 APPLE_CERT_PASSWORD NOTARY_APPLE_ID NOTARY_PASSWORD TAP_GITHUB_TOKEN; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::secret $name is empty, refusing to release"
+              exit 1
+            fi
+          done
+
+      - name: Require the tag to be on main
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_REF_NAME ($GITHUB_SHA) is not on main, refusing to release"
+            exit 1
+          fi
+
+      - name: Resolve version from tag
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - run: brew install xcodegen
+
+      - name: Swift tests
+        run: swift test --package-path Packages/TinecastKit
+
+      - name: Import signing certificate
+        env:
+          APPLE_CERT_P12: ${{ secrets.APPLE_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PW="$(openssl rand -base64 24)"
+          echo "$APPLE_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -P "$APPLE_CERT_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PW" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          rm -f "$RUNNER_TEMP/cert.p12"
+          ID="$(security find-identity -v -p codesigning "$KEYCHAIN" \
+            | awk -F '"' '/Developer ID Application/{print $2; exit}')"
+          if [ -z "$ID" ]; then
+            echo "::error::no Developer ID Application identity in the imported keychain"
+            exit 1
+          fi
+          echo "Imported: $ID"
+          echo "TINECAST_SIGN_ID=$ID" >> "$GITHUB_ENV"
+
+      - name: Package (Developer ID signed + notarized)
+        env:
+          TINECAST_VERSION: ${{ steps.ver.outputs.version }}
+          TINECAST_BUILD: ${{ github.run_number }}
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_TEAM_ID: "82K3YC8HVF"
+          NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+        run: bash scripts/package.sh
+
+      - name: Verify the artifacts are signed, notarized and stapled
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          set -euo pipefail
+          APP="dist/tinecast.app"
+          DMG="dist/tinecast-$VERSION.dmg"
+          codesign --verify --strict --deep --verbose=2 "$APP"
+          codesign -dvv "$APP" > "$RUNNER_TEMP/codesign.txt" 2>&1
+          grep -q 'Authority=Developer ID Application' "$RUNNER_TEMP/codesign.txt"
+          # GitHub runners disable Gatekeeper assessments, so spctl rejects even notarized artifacts; stapler validate is the offline proof.
+          xcrun stapler validate "$APP"
+          xcrun stapler validate "$DMG"
+
+      - name: Compute sha256
+        id: sha
+        run: |
+          echo "sha256=$(shasum -a 256 "dist/tinecast-${{ steps.ver.outputs.version }}.dmg" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/tinecast-${{ steps.ver.outputs.version }}.dmg" \
+            --title "tinecast ${{ steps.ver.outputs.version }}" \
+            --notes "Install: \`brew install --cask tinecli/tap/tinecast\`. Developer ID signed & notarized."
+
+      - name: Bump Homebrew cask
+        env:
+          TAP_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          SHA256: ${{ steps.sha.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/tinecli/homebrew-tap.git" tap
+          cd tap
+          sed -i '' -E "s/^  version \".*\"/  version \"$VERSION\"/" Casks/tinecast.rb
+          sed -i '' -E "s/^  sha256 \".*\"/  sha256 \"$SHA256\"/" Casks/tinecast.rb
+          grep -q "^  version \"$VERSION\"$" Casks/tinecast.rb
+          grep -q "^  sha256 \"$SHA256\"$" Casks/tinecast.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "tinecast $VERSION"
+          git push
