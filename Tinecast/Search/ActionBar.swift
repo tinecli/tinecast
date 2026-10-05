@@ -33,15 +33,18 @@ struct ActionBar: View {
             if let item {
                 HStack(spacing: 14) {
                     Button { run(item) } label: {
-                        ShortcutLabel(title: openTitle(for: item), shortcut: "↵")
+                        ShortcutLabel(title: openTitle(for: item), keys: ["↵"])
+                            .fontWeight(.semibold)
                     }
                     if item.kind == "File" {
                         Button { reveal(item) } label: {
-                            ShortcutLabel(title: "Show in Finder", shortcut: "⌘↵")
+                            ShortcutLabel(title: "Show in Finder", keys: ["⌘", "↵"])
+                                .foregroundStyle(.secondary)
                         }
                     }
                     Button(action: showActions) {
-                        ShortcutLabel(title: "Actions", shortcut: "⌘K")
+                        ShortcutLabel(title: "Actions", keys: ["⌘", "K"])
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .buttonStyle(.plain)
@@ -77,14 +80,26 @@ private struct MenuAnchor: NSViewRepresentable {
 
 private struct ShortcutLabel: View {
     let title: String
-    let shortcut: String
+    let keys: [String]
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             Text(title)
-            Text(shortcut)
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
+            HStack(spacing: 3) {
+                ForEach(keys, id: \.self) { key in
+                    Text(key)
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .frame(minWidth: 20, minHeight: 20)
+                        .padding(.horizontal, key.count > 1 ? 4 : 0)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .strokeBorder(.tertiary, lineWidth: 1)
+                        }
+                }
+            }
+            .fontWeight(.regular)
+            .accessibilityHidden(true)
         }
     }
 }
