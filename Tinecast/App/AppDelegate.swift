@@ -4,7 +4,7 @@ import TinecastKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     #if DEBUG
-    private static let folder = SettingsSnapshot.requested == nil
+    private static let folder = SettingsSnapshot.requested == nil && PanelSnapshot.requested == nil
         ? URL.applicationSupportDirectory.appending(path: "dev.gustaf.tinecast", directoryHint: .isDirectory)
         : URL.temporaryDirectory.appending(path: "tinecast-snapshot", directoryHint: .isDirectory)
     #else
@@ -68,6 +68,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         if let snapshot = SettingsSnapshot.requested {
             Task { await snapshot.capture() }
+            return
+        }
+        if let snapshot = PanelSnapshot.requested {
+            Task { [panel] in await snapshot.capture(panel) }
             return
         }
         #endif

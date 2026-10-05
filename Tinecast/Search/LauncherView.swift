@@ -15,7 +15,6 @@ struct Surface<S: Shape>: ViewModifier {
         content
             .environment(\.colorScheme, colorScheme)
             .environment(\.appearsActive, true)
-            .environment(\.backgroundMaterial, nil)
             .glassEffect(.regular, in: shape)
     }
 }
@@ -54,16 +53,20 @@ struct LauncherView: View {
         GlassEffectContainer {
             if model.isPresented {
                 VStack(spacing: 0) {
-                    searchBar
-                    if resultsHeight > 0 {
-                        Divider()
-                        ResultsList(
-                            model: model,
-                            contentHeight: resultsHeight,
-                            run: run,
-                            actionBar: ActionBar(item: model.selectedItem, run: run, reveal: reveal, showMoreMenu: showMoreMenu, actionsAnchor: actionsAnchor, showActions: showActions)
-                        )
+                    Group {
+                        searchBar
+                        if resultsHeight > 0 {
+                            Divider()
+                            ResultsList(
+                                model: model,
+                                contentHeight: resultsHeight,
+                                run: run,
+                                actionBar: ActionBar(item: model.selectedItem, run: run, reveal: reveal, showMoreMenu: showMoreMenu, actionsAnchor: actionsAnchor, showActions: showActions)
+                            )
+                        }
                     }
+                    // .glassEffect overrides a backgroundMaterial pin on its content; a pin on each child holds.
+                    .environment(\.backgroundMaterial, nil)
                 }
                 .frame(width: Self.glassWidth)
                 .fixedSize(horizontal: false, vertical: true)
