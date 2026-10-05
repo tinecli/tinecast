@@ -140,7 +140,8 @@ final class AppUpdater {
     }
 
     private static func latestVersion() async -> String? {
-        var request = URLRequest(url: releasesURL)
+        // GitHub's edge caches the releases/latest redirect; a unique query string bypasses it.
+        var request = URLRequest(url: releasesURL.appending(queryItems: [URLQueryItem(name: "t", value: String(Int(Date.now.timeIntervalSince1970)))]))
         request.httpMethod = "HEAD"
         guard let (_, response) = try? await URLSession.shared.data(for: request, delegate: RedirectBlocker()),
               let location = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Location")
