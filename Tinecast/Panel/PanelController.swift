@@ -1,4 +1,5 @@
 import AppKit
+import QuartzCore
 import SwiftUI
 import TinecastKit
 
@@ -159,12 +160,15 @@ final class PanelController: NSObject, NSWindowDelegate {
         let started = Date.now
         panel.alphaValue = 0
         model.dismiss()
-        let dismissed = Date.now
-        panel.makeFirstResponder(nil)
-        let resigned = Date.now
-        panel.orderOut(nil)
-        panel.alphaValue = 1
-        MainThreadWatchdog.shared.note("hide: model \(Int(dismissed.timeIntervalSince(started) * 1000)) ms, resign focus \(Int(resigned.timeIntervalSince(dismissed) * 1000)) ms, orderOut \(Int(Date.now.timeIntervalSince(resigned) * 1000)) ms")
+        CATransaction.flush()
+        DispatchQueue.main.async { [panel] in
+            let ordering = Date.now
+            panel.makeFirstResponder(nil)
+            panel.orderOut(nil)
+            panel.alphaValue = 1
+            MainThreadWatchdog.shared.note("deferred orderOut \(Int(Date.now.timeIntervalSince(ordering) * 1000)) ms")
+        }
+        MainThreadWatchdog.shared.note("hide: invisible after \(Int(Date.now.timeIntervalSince(started) * 1000)) ms")
     }
 
     private func dismiss() {
