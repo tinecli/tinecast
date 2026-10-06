@@ -177,3 +177,20 @@ private let deployID = "6F1C1E0A-8C1B-4F4C-9E43-2D2B7C1C0F11"
     #expect(edited.aliases.isEmpty)
     #expect(edited.hiddenItems.isEmpty)
 }
+
+@Test func calculatorSettingsRoundTrip() throws {
+    let decoded = try config(#"{ "calculator": { "autoConvertUnits": false, "inchFraction": 32, "precision": 4 } }"#)
+
+    #expect(decoded.calculator.autoConvertUnits == false)
+    #expect(decoded.calculator.inchFraction == 32)
+    #expect(decoded.calculator.precision == .places(4))
+    #expect(try config(#"{ "calculator": { "precision": "full" } }"#).calculator.precision == .full)
+    #expect(try config(#"{ "calculator": {} }"#).calculator == Config.Calculator())
+    #expect(try Config(json: decoded.json()) == decoded)
+}
+
+@Test func invalidCalculatorSettingsAreExplained() {
+    #expect(problem(#"{ "calculator": { "inchFraction": 10 } }"#) == "calculator.inchFraction: Use one of 2, 4, 8, 16, 32, 64.")
+    #expect(problem(#"{ "calculator": { "precision": 20 } }"#) == "calculator.precision: Decimal places must be from 0 to 15.")
+    #expect(problem(#"{ "calculator": { "precision": "lots" } }"#) == "calculator.precision: Use \"automatic\", \"full\" or a number of decimal places.")
+}

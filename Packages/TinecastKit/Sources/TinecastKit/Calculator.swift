@@ -19,7 +19,7 @@ public struct Calculation: Equatable, Sendable {
     public let note: String?
 }
 
-public func calculate(_ query: String, rates: ExchangeRates?, localCurrency: String?, locale: Locale) -> Calculation? {
+public func calculate(_ query: String, rates: ExchangeRates?, localCurrency: String?, locale: Locale, settings: Config.Calculator = Config.Calculator()) -> Calculation? {
     guard let tokens = try? tokenize(query, locale: locale), !tokens.isEmpty else { return nil }
     let allRates = (rates?.rates ?? [:]).merging(["EUR": 1]) { current, _ in current }
     var parser = Parser(tokens: tokens, rates: allRates)
@@ -32,7 +32,7 @@ public func calculate(_ query: String, rates: ExchangeRates?, localCurrency: Str
         .currency(local)
     } else if case .money = value {
         .currency(local == "EUR" ? "USD" : "EUR")
-    } else if case .measurement(let measurement) = value {
+    } else if case .measurement(let measurement) = value, settings.autoConvertUnits {
         implicitTargets[ObjectIdentifier(measurement.unit)].map { .unit($0) }
     } else {
         nil
@@ -41,10 +41,11 @@ public func calculate(_ query: String, rates: ExchangeRates?, localCurrency: Str
           let result = try? (conversion?.target ?? implicitTarget).map({ try parser.convert(value, to: $0) }) ?? value,
           result.magnitude.isFinite
     else { return nil }
-    let (display, raw) = format(result, locale: locale)
-    let fraction = fractionalInches(result, locale: locale)
-    let decimal = fraction.map { format(.measurement(Measurement(value: $0.inches, unit: UnitLength.inches)), locale: locale) }
-    let isRounded = fraction.map { abs($0.inches * 16 - ($0.inches * 16).rounded()) > 1e-9 } ?? false
+    let (display, raw) = format(result, precision: settings.precision, locale: locale)
+    let denominator = Double(settings.inchFraction)
+    let fraction = fractionalInches(result, denominator: settings.inchFraction, locale: locale)
+    let decimal = fraction.map { format(.measurement(Measurement(value: $0.inches, unit: UnitLength.inches)), precision: settings.precision, locale: locale) }
+    let isRounded = fraction.map { abs($0.inches * denominator - ($0.inches * denominator).rounded()) > 1e-9 } ?? false
     let suffix = conversion.map { " \($0.keyword) \($0.target.name)" } ?? implicitTarget.map { " in \($0.name)" } ?? ""
     return Calculation(
         expression: operand.text + suffix,
@@ -52,7 +53,7 @@ public func calculate(_ query: String, rates: ExchangeRates?, localCurrency: Str
         result: Calculation.Side(text: fraction?.text ?? display, name: name(of: result, locale: locale)),
         raw: fraction?.text ?? raw,
         decimal: decimal?.raw,
-        note: decimal.map { "= \($0.display)" + (isRounded ? " · nearest 1/16" : "") } ?? rates.flatMap { rateNote(for: result, from: parser.currencies, rates: allRates, date: $0.date, locale: locale) }
+        note: decimal.map { "= \($0.display)" + (isRounded ? " · nearest 1/\(settings.inchFraction)" : "") } ?? rates.flatMap { rateNote(for: result, from: parser.currencies, rates: allRates, date: $0.date, locale: locale) }
     )
 }
 
@@ -120,6 +121,7 @@ private struct Operand {
 }
 
 private let currencySigns: [Character: String] = ["€": "EUR", "$": "USD", "£": "GBP", "¥": "JPY"]
+private let primeMarks: [Character: String] = ["'": "ft", "′": "ft", "\"": "in", "″": "in"]
 private let symbols: Set<Character> = ["+", "-", "*", "/", "×", "÷", "^", "%", "(", ")"]
 private let currencyCodes = Set(Locale.Currency.isoCurrencies.map(\.identifier))
 private let constants: [String: Double] = ["pi": .pi, "π": .pi, "e": M_E]
@@ -149,6 +151,8 @@ private func tokenize(_ text: String, locale: Locale) throws(CalculationError) -
         if character.isWhitespace { continue }
         if let code = currencySigns[character] {
             tokens.append(.currencySign(code))
+        } else if let unit = primeMarks[character] {
+            tokens.append(.word(unit))
         } else if symbols.contains(character) {
             tokens.append(.symbol(character == "×" ? "*" : character == "÷" ? "/" : character))
         } else if character.isASCII, character.isNumber || character == "." {
@@ -343,7 +347,8 @@ private struct Parser {
         return Operand(quantity: input.with(magnitude: function(input.magnitude)), text: "\(word)(\(argument.text))")
     }
 
-    private mutating func amount(_ value: Double, text: String) -> Operand {
+    private mutating func amount(_ whole: Double, text wholeText: String) -> Operand {
+        let (value, text) = withFraction(whole, text: wholeText)
         guard position < tokens.count, !isConversion(at: position) else { return Operand(quantity: .number(value), text: text) }
         if case .currencySign(let code) = tokens[position] {
             position += 1
@@ -357,8 +362,33 @@ private struct Parser {
         case .currency(let code):
             return money(value, currency: code, text: text)
         case .unit(let unit):
-            return Operand(quantity: .measurement(Measurement(value: value, unit: unit)), text: "\(text) \(target.name)", isAmount: true)
+            return withTrailingAmount(Operand(quantity: .measurement(Measurement(value: value, unit: unit)), text: "\(text) \(target.name)", isAmount: true))
         }
+    }
+
+    private mutating func withFraction(_ value: Double, text: String) -> (Double, String) {
+        if position + 2 < tokens.count, case .number(let numerator, let numeratorText) = tokens[position], tokens[position + 1] == .symbol("/"),
+           case .number(let denominator, let denominatorText) = tokens[position + 2] {
+            position += 3
+            return (value + numerator / denominator, "\(text) \(numeratorText)/\(denominatorText)")
+        }
+        guard position + 2 < tokens.count, tokens[position] == .symbol("/"), case .number(let denominator, let denominatorText) = tokens[position + 1],
+              target(at: position + 2) != nil, !isConversion(at: position + 2)
+        else { return (value, text) }
+        position += 2
+        return (value / denominator, "\(text)/\(denominatorText)")
+    }
+
+    private mutating func withTrailingAmount(_ operand: Operand) -> Operand {
+        guard position < tokens.count, case .number(let value, let text) = tokens[position], case .measurement(let measurement) = operand.quantity else { return operand }
+        let start = position
+        position += 1
+        let next = amount(value, text: text)
+        guard let converted = try? convert(next.quantity, to: .unit(measurement.unit)) else {
+            position = start
+            return operand
+        }
+        return Operand(quantity: operand.quantity.with(magnitude: measurement.value + converted.magnitude), text: "\(operand.text) \(next.text)", isAmount: true)
     }
 
     private mutating func add(_ lhs: Quantity, _ rhs: Quantity, sign: Double) throws(CalculationError) -> Quantity {
@@ -396,34 +426,39 @@ private struct Parser {
     }
 }
 
-private func format(_ quantity: Quantity, locale: Locale) -> (display: String, raw: String) {
+private func format(_ quantity: Quantity, precision: Config.Calculator.Precision, locale: Locale) -> (display: String, raw: String) {
+    let suffix = switch quantity {
+    case .money(_, let code): " \(code)"
+    case .measurement(let measurement): " \(measurement.unit.symbol)"
+    case .number, .percent: ""
+    }
+    let isMoney = if case .money = quantity { true } else { false }
     let value = abs(quantity.magnitude) < 5e-11 ? 0 : quantity.magnitude
     let integerDigits = abs(value) < 1 ? 0 : Int(log10(abs(value))) + 1
     let formatter = NumberFormatter()
     formatter.locale = locale
-    if case .money = quantity {
-        formatter.numberStyle = .decimal
+    formatter.numberStyle = .decimal
+    if isMoney {
         formatter.minimumFractionDigits = 2
         formatter.maximumFractionDigits = 2
+    } else if case .places(let places) = precision {
+        formatter.maximumFractionDigits = places
+    } else if precision == .full {
+        formatter.usesSignificantDigits = true
+        formatter.maximumSignificantDigits = 15
     } else if abs(value) >= 1e15 {
         formatter.numberStyle = .scientific
         formatter.usesSignificantDigits = true
         formatter.maximumSignificantDigits = 10
     } else {
-        formatter.numberStyle = .decimal
         formatter.maximumFractionDigits = max(0, 10 - integerDigits)
-    }
-    let suffix = switch quantity {
-    case .money(_, let code): " \(code)"
-    case .measurement(let measurement): " \(measurement.unit.symbol)"
-    case .number, .percent: ""
     }
     let display = formatter.string(from: value as NSNumber) ?? ""
     formatter.usesGroupingSeparator = false
     return (display + suffix, formatter.string(from: value as NSNumber) ?? "")
 }
 
-private func fractionalInches(_ quantity: Quantity, locale: Locale) -> (text: String, inches: Double)? {
+private func fractionalInches(_ quantity: Quantity, denominator: Int, locale: Locale) -> (text: String, inches: Double)? {
     guard case .measurement(let measurement) = quantity else { return nil }
     let isFeetAndInches = measurement.unit === feetAndInches
     guard isFeetAndInches || measurement.unit === units["in"], abs(measurement.value) < 1e12 else { return nil }
@@ -431,15 +466,15 @@ private func fractionalInches(_ quantity: Quantity, locale: Locale) -> (text: St
     let formatter = NumberFormatter()
     formatter.locale = locale
     formatter.numberStyle = .decimal
-    let sixteenths = Int((abs(inches) * 16).rounded())
-    let feet = isFeetAndInches ? sixteenths / 192 : 0
-    let whole = sixteenths / 16 - feet * 12
-    let numerator = sixteenths % 16
-    let fraction = numerator == 0 ? nil : "\(numerator >> numerator.trailingZeroBitCount)/\(16 >> numerator.trailingZeroBitCount)"
+    let parts = Int((abs(inches) * Double(denominator)).rounded())
+    let feet = isFeetAndInches ? parts / (12 * denominator) : 0
+    let whole = parts / denominator - feet * 12
+    let numerator = parts % denominator
+    let fraction = numerator == 0 ? nil : "\(numerator >> numerator.trailingZeroBitCount)/\(denominator >> numerator.trailingZeroBitCount)"
     let inchesText = [whole == 0 ? nil : formatter.string(from: whole as NSNumber), fraction].compactMap(\.self).joined(separator: " ")
-    let parts = [feet == 0 ? nil : "\(formatter.string(from: feet as NSNumber) ?? "") ft", inchesText.isEmpty ? nil : "\(inchesText) in"].compactMap(\.self)
-    let sign = inches < 0 && sixteenths > 0 ? formatter.minusSign ?? "-" : ""
-    return (sign + (parts.isEmpty ? "0 in" : parts.joined(separator: " ")), inches)
+    let components = [feet == 0 ? nil : "\(formatter.string(from: feet as NSNumber) ?? "") ft", inchesText.isEmpty ? nil : "\(inchesText) in"].compactMap(\.self)
+    let sign = inches < 0 && parts > 0 ? formatter.minusSign ?? "-" : ""
+    return (sign + (components.isEmpty ? "0 in" : components.joined(separator: " ")), inches)
 }
 
 private func name(of quantity: Quantity, locale: Locale) -> String {

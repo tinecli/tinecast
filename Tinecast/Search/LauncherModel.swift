@@ -28,12 +28,15 @@ final class LauncherModel {
                 filesProvider.fileSearch = config.fileSearch
                 filesProvider.search(query)
             }
+            if config.calculator != oldValue.calculator {
+                calculation = calculate(query, rates: exchangeRates, localCurrency: Locale.current.currency?.identifier, locale: .current, settings: config.calculator)
+            }
             searchable = (apps.alphabetical + config.commands.map(\.item) + SystemAction.allCases.map(\.item)).filter { !config.hiddenItems.contains($0.id) }
         }
     }
     var exchangeRates: ExchangeRates? {
         didSet {
-            calculation = calculate(query, rates: exchangeRates, localCurrency: Locale.current.currency?.identifier, locale: .current)
+            calculation = calculate(query, rates: exchangeRates, localCurrency: Locale.current.currency?.identifier, locale: .current, settings: config.calculator)
             updateResults()
         }
     }
@@ -122,7 +125,7 @@ final class LauncherModel {
     }
 
     private func search() {
-        calculation = calculate(query, rates: exchangeRates, localCurrency: Locale.current.currency?.identifier, locale: .current)
+        calculation = calculate(query, rates: exchangeRates, localCurrency: Locale.current.currency?.identifier, locale: .current, settings: config.calculator)
         if calculation != nil || exchangeRates == nil { refreshRates() }
         rankedResults = rank(searchable, query: query, frecency: frecency, aliases: config.aliases)
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
