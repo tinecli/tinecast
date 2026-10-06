@@ -128,8 +128,10 @@ jobs:
           cd tap
           sed -i '' -E "s/^  version \".*\"/  version \"$VERSION\"/" Casks/tinecast.rb
           sed -i '' -E "s/^  sha256 \".*\"/  sha256 \"$SHA256\"/" Casks/tinecast.rb
+          sed -i '' -E -e 's/^  name ".*"/  name "Tinecast"/' -e 's/^  app ".*"/  app "Tinecast.app"/' Casks/tinecast.rb
           grep -q "^  version \"$VERSION\"$" Casks/tinecast.rb
           grep -q "^  sha256 \"$SHA256\"$" Casks/tinecast.rb
+          grep -q '^  app "Tinecast.app"$' Casks/tinecast.rb
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "tinecast $VERSION"
