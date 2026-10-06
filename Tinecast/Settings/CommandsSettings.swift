@@ -58,7 +58,7 @@ struct CommandsSettings: View {
             Button("Delete", role: .destructive) { model.deleteCommand(command) }
             Button("Cancel", role: .cancel) {}
         } message: { _ in
-            Text("It’s removed from tinecast’s search. This can’t be undone.")
+            Text("It’s removed from Tinecast’s search. This can’t be undone.")
         }
     }
 

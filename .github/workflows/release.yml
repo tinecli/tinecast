@@ -94,7 +94,7 @@ jobs:
           VERSION: ${{ steps.ver.outputs.version }}
         run: |
           set -euo pipefail
-          APP="dist/tinecast.app"
+          APP="dist/Tinecast.app"
           DMG="dist/tinecast-$VERSION.dmg"
           codesign --verify --strict --deep --verbose=2 "$APP"
           codesign -dvv "$APP" > "$RUNNER_TEMP/codesign.txt" 2>&1
@@ -114,7 +114,7 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" \
             "dist/tinecast-${{ steps.ver.outputs.version }}.dmg" \
-            --title "tinecast ${{ steps.ver.outputs.version }}" \
+            --title "Tinecast ${{ steps.ver.outputs.version }}" \
             --notes "Install: \`brew install --cask tinecli/tap/tinecast\`. Developer ID signed & notarized."
 
       - name: Bump Homebrew cask

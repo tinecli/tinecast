@@ -50,7 +50,7 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
         panel.handleKeyEquivalent = { [weak self] event in self?.handleKeyEquivalent(event) ?? false }
         moreMenu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
         moreMenu.addItem(.separator())
-        moreMenu.addItem(withTitle: "Quit tinecast", action: #selector(NSApplication.terminate), keyEquivalent: "q").target = NSApp
+        moreMenu.addItem(withTitle: "Quit Tinecast", action: #selector(NSApplication.terminate), keyEquivalent: "q").target = NSApp
     }
 
     func toggle() {

@@ -22,7 +22,7 @@ notarize() {
 }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$ROOT/dist"
-APP="$DIST/tinecast.app"
+APP="$DIST/Tinecast.app"
 DERIVED="$ROOT/.build/release"
 VERSION="${TINECAST_VERSION:-0.1.6}"
 BUILD="${TINECAST_BUILD:-1}"
@@ -38,7 +38,7 @@ xcodebuild -project "$ROOT/Tinecast.xcodeproj" -scheme tinecast -configuration R
 echo "› assemble $APP"
 rm -rf "$APP"
 mkdir -p "$DIST"
-ditto "$DERIVED/Build/Products/Release/tinecast.app" "$APP"
+ditto "$DERIVED/Build/Products/Release/Tinecast.app" "$APP"
 
 if [ "$SIGN_ID" = "-" ]; then
   echo "› ad-hoc sign + hardened runtime (unsigned distribution)"
@@ -56,9 +56,9 @@ echo "› dmg"
 DMG="$DIST/tinecast-${VERSION}.dmg"
 rm -f "$DMG"
 STAGE="$(mktemp -d)"
-cp -R "$APP" "$STAGE/tinecast.app"
+cp -R "$APP" "$STAGE/Tinecast.app"
 ln -s /Applications "$STAGE/Applications"
-hdiutil create -volname "tinecast ${VERSION}" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
+hdiutil create -volname "Tinecast ${VERSION}" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
 rm -rf "$STAGE"
 
 notarize "$DMG"

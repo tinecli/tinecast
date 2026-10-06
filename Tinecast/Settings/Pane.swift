@@ -22,7 +22,7 @@ enum Pane: String {
         switch self {
         case .general: (
             "General", "gearshape.fill", .gray,
-            "Choose how tinecast opens and behaves.",
+            "Choose how Tinecast opens and behaves.",
             []
         )
         case .permissions: (
@@ -37,7 +37,7 @@ enum Pane: String {
         )
         case .commands: (
             "Commands", "terminal.fill", Color(white: 0.2),
-            "Run your own commands from tinecast.",
+            "Run your own commands from Tinecast.",
             ["Shell", "Script", "Terminal", "Alias"]
         )
         case .systemActions: (
@@ -57,7 +57,7 @@ enum Pane: String {
         )
         case .history: (
             "History", "clock.arrow.circlepath", .purple,
-            "Control what tinecast remembers.",
+            "Control what Tinecast remembers.",
             ["Privacy"]
         )
         }

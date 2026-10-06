@@ -13,7 +13,7 @@ enum SettingRow: String, CaseIterable {
 
     private var details: (pane: Pane, label: String, keywords: [String]) {
         switch self {
-        case .hotkey: (.general, "Open tinecast", ["Global Shortcut", "Hotkey", "Keyboard Shortcut"])
+        case .hotkey: (.general, "Open Tinecast", ["Global Shortcut", "Hotkey", "Keyboard Shortcut"])
         case .openAtLogin: (.general, "Open at Login", ["Launch", "Startup"])
         case .clearSearchAfter: (.general, "Clear Search After", ["Reopen", "Timeout"])
         case .compactBar: (.general, "Compact Bar", ["Slim", "Appearance"])

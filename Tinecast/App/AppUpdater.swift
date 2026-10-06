@@ -87,7 +87,7 @@ final class AppUpdater {
         }
         newerVersion = latest
         guard FileManager.default.isWritableFile(atPath: Self.installDir.path) else {
-            status = .blocked("tinecast can’t update itself in \(Self.installDir.path). Download it instead.")
+            status = .blocked("Tinecast can’t update itself in \(Self.installDir.path). Download it instead.")
             if trigger == .manual { NSWorkspace.shared.open(Self.releasesURL) }
             return
         }
@@ -177,10 +177,10 @@ final class AppUpdater {
         }
         defer { _ = run("/usr/bin/hdiutil", ["detach", mount.path, "-force"]) }
 
-        let source = mount.appending(path: "tinecast.app")
+        let source = mount.appending(path: "Tinecast.app")
         guard bundleVersion(of: source) == version else { throw UpdateFailure("The downloaded app isn’t version \(version).") }
         guard isTrusted(source) else { throw UpdateFailure("The downloaded app failed signature checks.") }
-        let app = root.appending(path: "tinecast.app")
+        let app = root.appending(path: "Tinecast.app")
         guard run("/usr/bin/ditto", [source.path, app.path]), isTrusted(app) else {
             throw UpdateFailure("The downloaded app failed signature checks.")
         }

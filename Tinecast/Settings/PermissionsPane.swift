@@ -80,7 +80,7 @@ struct PermissionsPane: View {
                 }
             }
             Section {
-                PermissionRow(row: .loginItem, reason: "Starts tinecast when you log in.", status: loginItem) {
+                PermissionRow(row: .loginItem, reason: "Starts Tinecast when you log in.", status: loginItem) {
                     if loginItem == .needsApproval {
                         Button("Open System Settings…") { SMAppService.openSystemSettingsLoginItems() }
                     }

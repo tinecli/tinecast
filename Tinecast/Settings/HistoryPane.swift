@@ -51,7 +51,7 @@ struct HistoryPane: View {
             Button("Reset", role: .destructive, action: model.resetRanking)
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("tinecast forgets which results you choose for each search. This can’t be undone.")
+            Text("Tinecast forgets which results you choose for each search. This can’t be undone.")
         }
     }
 
