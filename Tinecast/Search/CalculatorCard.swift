@@ -21,8 +21,8 @@ struct CalculatorCard: View {
                     .accessibilityHidden(true)
                 column(calculation.result, fill: fill)
             }
-            if let rateNote = calculation.rateNote {
-                Text(rateNote)
+            if let note = calculation.note {
+                Text(note)
                     .font(.subheadline)
                     .monospacedDigit()
                     .foregroundStyle(.secondary)

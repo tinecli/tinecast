@@ -105,7 +105,7 @@ private func result(_ query: String, rates: ExchangeRates? = rates, local: Strin
     #expect(result("pi") == nil)
     #expect(result("-5") == nil)
     #expect(result("(5)") == nil)
-    #expect(result("5 km") == nil)
+    #expect(result("5 min") == nil)
     #expect(result("1password") == nil)
     #expect(result("e-mail") == nil)
     #expect(result("visual studio code") == nil)
@@ -182,7 +182,7 @@ private func result(_ query: String, rates: ExchangeRates? = rates, local: Strin
     #expect(result("12 in to cm") == "30.48 cm")
     #expect(result("30.48 cm in in") == "12 in")
     #expect(result("12 in in cm") == "30.48 cm")
-    #expect(result("12 in") == nil)
+    #expect(result("12 in") == "30.48 cm")
 }
 
 @Test func unitArithmeticConvertsToTheFirstUnit() {
@@ -244,7 +244,7 @@ private func result(_ query: String, rates: ExchangeRates? = rates, local: Strin
 
     #expect(calculation.input == Calculation.Side(text: "100 SEK", name: "Swedish Krona"))
     #expect(calculation.result == Calculation.Side(text: "9.09 EUR", name: "Euro"))
-    #expect(calculation.rateNote == "1 SEK = 0.09091 EUR · ECB reference rate, Sep 30, 2026")
+    #expect(calculation.note == "1 SEK = 0.09091 EUR · ECB reference rate, Sep 30, 2026")
 }
 
 @Test func explicitConversionKeepsTheKeywordOutOfTheInput() throws {
@@ -252,7 +252,7 @@ private func result(_ query: String, rates: ExchangeRates? = rates, local: Strin
 
     #expect(calculation.input == Calculation.Side(text: "100 USD", name: "US Dollar"))
     #expect(calculation.result.name == "Swedish Krona")
-    #expect(calculation.rateNote == "1 USD = 10 SEK · ECB reference rate, Sep 30, 2026")
+    #expect(calculation.note == "1 USD = 10 SEK · ECB reference rate, Sep 30, 2026")
 }
 
 @Test func mixedSumsAreExpressionsWithOneRateOrJustTheDate() throws {
@@ -261,13 +261,13 @@ private func result(_ query: String, rates: ExchangeRates? = rates, local: Strin
 
     #expect(oneOther.input == Calculation.Side(text: "14390 SEK + 2950 SEK + 260 EUR", name: "Expression"))
     #expect(oneOther.result.name == "Swedish Krona")
-    #expect(oneOther.rateNote == "1 EUR = 11 SEK · ECB reference rate, Sep 30, 2026")
-    #expect(twoOthers.rateNote == "ECB reference rates, Sep 30, 2026")
-    #expect(calculate("14390 SEK + 2950 SEK", rates: rates, localCurrency: "SEK", locale: english)?.rateNote == nil)
+    #expect(oneOther.note == "1 EUR = 11 SEK · ECB reference rate, Sep 30, 2026")
+    #expect(twoOthers.note == "ECB reference rates, Sep 30, 2026")
+    #expect(calculate("14390 SEK + 2950 SEK", rates: rates, localCurrency: "SEK", locale: english)?.note == nil)
 }
 
 @Test func rateNoteDateFollowsTheLocale() {
-    let note = calculate("100 SEK", rates: rates, localCurrency: "SEK", locale: Locale(identifier: "sv_SE"))?.rateNote
+    let note = calculate("100 SEK", rates: rates, localCurrency: "SEK", locale: Locale(identifier: "sv_SE"))?.note
 
     #expect(note == "1 SEK = 0,09091 EUR · ECB reference rate, 30 sep. 2026")
 }
@@ -278,7 +278,7 @@ private func result(_ query: String, rates: ExchangeRates? = rates, local: Strin
 
     #expect(calculation.input == Calculation.Side(text: "5 km", name: "Kilometers"))
     #expect(calculation.result.name == "Miles")
-    #expect(calculation.rateNote == nil)
+    #expect(calculation.note == nil)
     #expect(name("3 kg in lb", english) == "Pounds")
     #expect(name("1 l to floz", english) == "Fluid ounces")
     #expect(name("10 m/s to km/h", english) == "Kilometers per hour")
@@ -293,7 +293,7 @@ private func result(_ query: String, rates: ExchangeRates? = rates, local: Strin
 
     #expect(calculation.input == Calculation.Side(text: "1 + 2 × 3", name: "Expression"))
     #expect(calculation.result == Calculation.Side(text: "7", name: "Answer"))
-    #expect(calculation.rateNote == nil)
+    #expect(calculation.note == nil)
     #expect(calculate("1 km + 500 m", rates: rates, localCurrency: "SEK", locale: english)?.input.name == "Expression")
 }
 
@@ -323,4 +323,39 @@ private func result(_ query: String, rates: ExchangeRates? = rates, local: Strin
         _ = calculate(query, rates: rates, localCurrency: "SEK", locale: english)
         _ = calculate(query, rates: nil, localCurrency: nil, locale: english)
     }
+}
+
+@Test func bareMeasurementsConvertBetweenMetricAndImperial() {
+    #expect(result("6 inch") == "15.24 cm")
+    #expect(result("6 ft") == "1.8288 m")
+    #expect(result("5 km") == "3.106855961 mi")
+    #expect(result("3 kg") == "6.613867866 lb")
+    #expect(result("100 °F") == "37.77777778 °C")
+    #expect(result("1 cup") == "240 mL")
+    #expect(result("100 km/h") == "62.13711922 mph")
+    #expect(result("2 days") == nil)
+    #expect(result("1 tb") == nil)
+}
+
+@Test func lengthsShowInchesInSixteenths() {
+    #expect(result("180 cm") == "5 ft 10 7/8 in")
+    #expect(result("15 cm") == "5 7/8 in")
+    #expect(result("6 mm") == "1/4 in")
+    #expect(result("30.48 cm in ft in") == "1 ft")
+    #expect(result("180 cm to feet and inches") == "5 ft 10 7/8 in")
+    #expect(result("2 m in inches") == "78 3/4 in")
+    #expect(result("0 cm") == "0 in")
+    #expect(result("0 - 3 cm in in") == "-1 3/16 in")
+    #expect(result("0.5 mm in ft in") == "0 in")
+}
+
+@Test func fractionalInchesKeepTheDecimal() {
+    let rounded = calculate("180 cm", rates: rates, localCurrency: "SEK", locale: english)
+    #expect(rounded?.raw == "5 ft 10 7/8 in")
+    #expect(rounded?.decimal == "70.86614173")
+    #expect(rounded?.note == "= 70.86614173 in · nearest 1/16")
+    let exact = calculate("12.7 mm", rates: rates, localCurrency: "SEK", locale: english)
+    #expect(exact?.decimal == "0.5")
+    #expect(exact?.note == "= 0.5 in")
+    #expect(calculate("1 km", rates: rates, localCurrency: "SEK", locale: english)?.decimal == nil)
 }

@@ -29,7 +29,9 @@ your Mac.
 - **Calculator.** Math with `+ - * / ^`, `%`, parentheses, `pi`, `sqrt`, `round`,
   `log`, `sin` and more. Currency with ECB reference rates (`100 usd to sek`,
   `14390 SEK + 260 EUR`, `€260`). Units for length, mass, temperature, duration,
-  volume, area, speed and storage. ↵ copies the answer.
+  volume, area, speed and storage. A bare amount converts on its own (`6 inch`
+  shows cm, `180 cm` shows `5 ft 10 7/8 in`), and inches show in 1/16 fractions
+  with the decimal below. ↵ copies the answer.
 - **System actions.** Lock Screen, Sleep, Restart, Shut Down, Log Out, Screen
   Saver, media and volume keys, Show Desktop, Toggle Dark Mode, Trash, Eject All
   Disks, Hide Others, Quit All Apps. Destructive ones ask first.

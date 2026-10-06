@@ -135,7 +135,7 @@ final class LauncherModel {
 
     private var calculatorResults: [Item] {
         guard let calculation else { return [] }
-        return [Item(id: "calculator", title: calculation.result.text, subtitle: calculation.expression, icon: .symbol("equal.circle"), action: .copy(calculation.raw))]
+        return [Item(id: "calculator", title: calculation.result.text, subtitle: calculation.expression, icon: .symbol("equal.circle"), action: .copy(calculation.raw, decimal: calculation.decimal))]
     }
 
     private var recents: [Item] {
