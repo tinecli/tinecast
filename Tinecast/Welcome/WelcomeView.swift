@@ -24,7 +24,7 @@ struct WelcomeView: View {
                 .resizable()
                 .frame(width: 96, height: 96)
                 .accessibilityHidden(true)
-            Text("Welcome to tinecast")
+            Text("Welcome to Tinecast")
                 .font(.largeTitle.bold())
                 .padding(.top, 12)
                 .accessibilityAddTraits(.isHeader)
@@ -35,7 +35,7 @@ struct WelcomeView: View {
                 .padding(.top, 6)
             SettingsCard {
                 hotkeyRow
-                WelcomeRow(title: "Open at Login", detail: "Start tinecast when you log in.") {
+                WelcomeRow(title: "Open at Login", detail: "Start Tinecast when you log in.") {
                     Toggle("Open at Login", isOn: $model.config.launchAtLogin)
                         .toggleStyle(.switch)
                         .labelsHidden()
@@ -77,7 +77,7 @@ struct WelcomeView: View {
     private var hotkeyRow: some View {
         let hotkey = model.config.hotkey
         let owner = hotkey.systemShortcutOwner(in: symbolicHotKeys)
-        return WelcomeRow(title: "Open tinecast with", detail: owner.map { "\(hotkey.glyphs) is used by \($0). Change it in System Settings › Keyboard › Keyboard Shortcuts › \($0)." }
+        return WelcomeRow(title: "Open Tinecast with", detail: owner.map { "\(hotkey.glyphs) is used by \($0). Change it in System Settings › Keyboard › Keyboard Shortcuts › \($0)." }
             ?? (model.isHotkeyRegistered ? "Press it in any app." : "\(hotkey.glyphs) is used by another app. Choose another.")) {
             ShortcutRecorder(combination: $model.config.hotkey)
         } footer: {

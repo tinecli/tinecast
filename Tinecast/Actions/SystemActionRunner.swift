@@ -83,7 +83,7 @@ final class SystemActionRunner {
         guard !AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": prompts] as CFDictionary) else { return true }
         guard !prompts else { return false }
         let opensSettings = presentAlert(
-            "tinecast needs Accessibility access",
+            "Tinecast needs Accessibility access",
             "Lock Screen and the media actions work by sending keystrokes, which macOS only allows for apps turned on in System Settings > Privacy & Security > Accessibility.",
             confirming: "Open System Settings"
         )

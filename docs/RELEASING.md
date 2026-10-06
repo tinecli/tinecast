@@ -28,7 +28,7 @@ hand-maintained; the workflow only rewrites `version` and `sha256`.
 ## Building a dmg locally
 
 ```sh
-scripts/package.sh                       # → dist/tinecast.app + dist/tinecast-<version>.dmg
+scripts/package.sh                       # → dist/Tinecast.app + dist/tinecast-<version>.dmg
 ```
 
 `package.sh` runs `xcodegen generate`, builds Release for Apple Silicon with `xcodebuild`, and Developer ID signs

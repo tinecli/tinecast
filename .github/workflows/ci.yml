@@ -30,6 +30,6 @@ jobs:
       - name: Verify bundle
         run: |
           set -euo pipefail
-          test -x dist/tinecast.app/Contents/MacOS/tinecast
-          test -f dist/tinecast.app/Contents/Resources/AppIcon.icns
-          test "$(lipo -archs dist/tinecast.app/Contents/MacOS/tinecast)" = "arm64"
+          test -x dist/Tinecast.app/Contents/MacOS/tinecast
+          test -f dist/Tinecast.app/Contents/Resources/AppIcon.icns
+          test "$(lipo -archs dist/Tinecast.app/Contents/MacOS/tinecast)" = "arm64"

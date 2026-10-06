@@ -83,7 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onReload: { [weak self] config in self?.apply(config) },
             onInvalid: { [settings] problem in
                 settings.reject(problem)
-                presentAlert("settings.json has a problem", "\(problem)\n\ntinecast keeps its current settings until the file is fixed.")
+                presentAlert("settings.json has a problem", "\(problem)\n\nTinecast keeps its current settings until the file is fixed.")
             }
         )
         if config == nil { register(Config().hotkey) }
@@ -109,7 +109,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard hotKey == nil, isNewCombination else { return }
         presentAlert(
             "\(combination.displayName) is already in use",
-            "tinecast opens with \(combination.displayName), but another app or a system shortcut already uses it. Free it in System Settings > Keyboard > Keyboard Shortcuts (Spotlight and Input Sources use Command-Space and Control-Space), or choose another hotkey in tinecast Settings."
+            "Tinecast opens with \(combination.displayName), but another app or a system shortcut already uses it. Free it in System Settings > Keyboard > Keyboard Shortcuts (Spotlight and Input Sources use Command-Space and Control-Space), or choose another hotkey in Tinecast Settings."
         )
     }
 

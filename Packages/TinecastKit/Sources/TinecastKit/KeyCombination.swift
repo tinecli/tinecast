@@ -77,7 +77,7 @@ public struct KeyCombination: Codable, Equatable, Sendable, CustomStringConverti
         let container = try decoder.singleValueContainer()
         let text = try container.decode(String.self)
         guard let combination = KeyCombination(text) else {
-            throw DecodingError.dataCorruptedError(in: container, debugDescription: "\"\(text)\" isn't a key combination tinecast understands, try something like \"ctrl+space\".")
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "\"\(text)\" isn't a key combination Tinecast understands, try something like \"ctrl+space\".")
         }
         self = combination
     }

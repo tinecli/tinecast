@@ -5,7 +5,7 @@ struct TinecastApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
 
     var body: some Scene {
-        Window("tinecast Settings", id: "settings") {
+        Window("Tinecast Settings", id: "settings") {
             SettingsView(model: appDelegate.settings)
                 .environment(appDelegate.updater)
         }
@@ -13,7 +13,7 @@ struct TinecastApp: App {
         .defaultLaunchBehavior(launchBehavior)
         .windowResizability(.contentMinSize)
         .defaultSize(width: 860, height: 640)
-        Window("Welcome to tinecast", id: "welcome") {
+        Window("Welcome to Tinecast", id: "welcome") {
             WelcomeView(model: appDelegate.settings)
         }
         .defaultLaunchBehavior(WelcomeView.launchBehavior)

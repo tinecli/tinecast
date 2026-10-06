@@ -79,8 +79,8 @@ struct GeneralPane: View {
         case .idle: EmptyView()
         case .checking: Text("Checking for updates…").font(.callout).foregroundStyle(.secondary)
         case .downloading: Text("Downloading the update…").font(.callout).foregroundStyle(.secondary)
-        case .upToDate(let version): Text("tinecast \(version) is the latest version.").font(.callout).foregroundStyle(.secondary)
-        case .ready(let version): Text("tinecast \(version) is ready to install.").font(.callout)
+        case .upToDate(let version): Text("Tinecast \(version) is the latest version.").font(.callout).foregroundStyle(.secondary)
+        case .ready(let version): Text("Tinecast \(version) is ready to install.").font(.callout)
         case .blocked(let message): Text(message).font(.callout).foregroundStyle(.orange)
         case .failed(let message): Text(message).font(.callout).foregroundStyle(.red)
         }
