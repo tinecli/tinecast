@@ -14,7 +14,7 @@ func launchInBackground(_ failureMessage: String, _ executable: String, _ argume
 }
 
 @concurrent
-private func failureOutput(of executable: String, _ arguments: [String]) async throws -> String? {
+func failureOutput(of executable: String, _ arguments: [String]) async throws -> String? {
     let process = Process()
     let errorPipe = Pipe()
     let (exits, exited) = AsyncStream.makeStream(of: Int32.self)

@@ -61,10 +61,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             exit(0)
         }
         terminationSignal?.resume()
-        appsProvider = AppsProvider { [panel, settings] apps in
+        let appsProvider = AppsProvider { [panel, settings] apps in
             panel.model.apps = apps
             settings.apps = apps
         }
+        self.appsProvider = appsProvider
+        settings.repairAppIndex = { try await appsProvider.repairIndex() }
         #if DEBUG
         if let snapshot = SettingsSnapshot.requested {
             Task { await snapshot.capture() }

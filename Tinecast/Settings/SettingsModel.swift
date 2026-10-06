@@ -25,6 +25,7 @@ final class SettingsModel {
         didSet { applications = apps.alphabetical }
     }
     @ObservationIgnored var refreshRates: () async -> Bool = { false }
+    @ObservationIgnored var repairAppIndex: () async throws -> Int = { 0 }
     @ObservationIgnored var clearHistory: () -> Void = {}
     @ObservationIgnored var resetRanking: () -> Void = {}
     @ObservationIgnored var showPanel: () -> Void = {}
