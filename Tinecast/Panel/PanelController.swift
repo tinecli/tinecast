@@ -274,7 +274,7 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
         if model.frecency != frecency { frecencyFile.save(model.frecency) }
     }
 
-    private func hide() {
+    func hide() {
         panel.alphaValue = 0
         model.dismiss()
         CATransaction.flush()
