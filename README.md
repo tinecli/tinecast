@@ -30,8 +30,9 @@ your Mac.
   `log`, `sin` and more. Currency with ECB reference rates (`100 usd to sek`,
   `14390 SEK + 260 EUR`, `€260`). Units for length, mass, temperature, duration,
   volume, area, speed and storage. A bare amount converts on its own (`6 inch`
-  shows cm, `180 cm` shows `5 ft 10 7/8 in`), and inches show in 1/16 fractions
-  with the decimal below. ↵ copies the answer.
+  shows cm, `180 cm` shows `5 ft 10 7/8 in`), mixed and fractional amounts work
+  (`5'10"`, `2 1/2 in`), and inches show in fractions with the decimal below.
+  Settings pick the fraction size and decimal places. ↵ copies the answer.
 - **System actions.** Lock Screen, Sleep, Restart, Shut Down, Log Out, Screen
   Saver, media and volume keys, Show Desktop, Toggle Dark Mode, Trash, Eject All
   Disks, Hide Others, Quit All Apps. Destructive ones ask first.
@@ -82,7 +83,7 @@ None are needed to search, calculate or launch. Some actions ask for one
 Everything lives in `~/Library/Application Support/dev.gustaf.tinecast/`:
 
 - `settings.json`: hotkey, launch at login, compact bar, reopen timeout, file
-  search folders and exclusions, history ignore pattern, commands, aliases and
+  search folders and exclusions, calculator units and precision, history ignore pattern, commands, aliases and
   hidden items. The Settings window edits it, and "Open" under Advanced opens
   the file. It reloads on save. An invalid file keeps the previous settings and
   shows one alert.

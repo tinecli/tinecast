@@ -41,6 +41,7 @@ let units: [String: Dimension] = {
         (UnitVolume(symbol: "tbsp", converter: UnitConverterLinear(coefficient: 0.01478676478125)), ["tbsp", "tablespoon", "tablespoons"]),
         (UnitVolume(symbol: "fl oz", converter: UnitConverterLinear(coefficient: 0.0295735295625)), ["floz"]),
         (UnitVolume.cups, ["cup", "cups"]),
+        (UnitVolume(symbol: "US cup", converter: UnitConverterLinear(coefficient: 0.2365882365)), ["uscup", "uscups", "US cups"]),
         (UnitVolume(symbol: "pt", converter: UnitConverterLinear(coefficient: 0.473176473)), ["pt", "pint", "pints"]),
         (UnitVolume(symbol: "qt", converter: UnitConverterLinear(coefficient: 0.946352946)), ["qt", "quart", "quarts"]),
         (UnitVolume(symbol: "gal", converter: UnitConverterLinear(coefficient: 3.785411784)), ["gal", "gallon", "gallons"]),
@@ -87,7 +88,7 @@ let implicitTargets: [ObjectIdentifier: Dimension] = Dictionary(uniqueKeysWithVa
     ("g", "oz"), ("kg", "lb"), ("oz", "g"), ("lb", "kg"), ("st", "kg"),
     ("c", "f"), ("f", "c"), ("k", "c"),
     ("ml", "floz"), ("cl", "floz"), ("dl", "cup"), ("l", "gal"),
-    ("tsp", "ml"), ("tbsp", "ml"), ("floz", "ml"), ("cup", "ml"), ("pt", "ml"), ("qt", "l"), ("gal", "l"),
+    ("tsp", "ml"), ("tbsp", "ml"), ("floz", "ml"), ("cup", "ml"), ("uscup", "ml"), ("pt", "ml"), ("qt", "l"), ("gal", "l"),
     ("m2", "ft2"), ("km2", "mi2"), ("ft2", "m2"), ("mi2", "km2"), ("ha", "ac"), ("ac", "ha"),
     ("m/s", "km/h"), ("km/h", "mph"), ("mph", "km/h"), ("kn", "km/h"),
 ].map { (ObjectIdentifier(units[$0]!), units[$1]!) })

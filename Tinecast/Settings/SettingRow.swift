@@ -3,7 +3,7 @@ enum SettingRow: String, CaseIterable {
     case accessibility, systemEventsAutomation, finderAutomation, loginItem
     case addCommand
     case searchIn, exclude
-    case rateSource, ratesFrom, lastUpdated, refreshRates
+    case autoConvertUnits, inchFractions, decimalPlaces, rateSource, ratesFrom, lastUpdated, refreshRates
     case historyIgnore, searchHistory, suggestions
 
     var pane: Pane { details.pane }
@@ -26,6 +26,9 @@ enum SettingRow: String, CaseIterable {
         case .addCommand: (.commands, "Add Command…", ["New Command"])
         case .searchIn: (.files, "Search In", ["Folders", "File Search"])
         case .exclude: (.files, "Exclude", ["Folders", "Ignore"])
+        case .autoConvertUnits: (.calculator, "Convert Units Automatically", ["Units", "Metric", "Imperial", "Inches", "Centimeters"])
+        case .inchFractions: (.calculator, "Inch Fractions", ["Units", "Inches", "Precision", "Feet"])
+        case .decimalPlaces: (.calculator, "Decimal Places", ["Precision", "Rounding", "Decimals"])
         case .rateSource: (.calculator, "Source", ["Exchange Rates", "Currency", "European Central Bank"])
         case .ratesFrom: (.calculator, "Rates From", ["Exchange Rates", "Date"])
         case .lastUpdated: (.calculator, "Last Updated", ["Exchange Rates"])

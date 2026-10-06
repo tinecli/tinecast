@@ -52,7 +52,7 @@ enum Pane: String {
         )
         case .calculator: (
             "Calculator", "plus.forwardslash.minus", Color(white: 0.4),
-            "Exchange rates for currency conversion.",
+            "Unit conversion, precision and exchange rates.",
             ["Exchange Rates", "Currency"]
         )
         case .history: (

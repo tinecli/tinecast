@@ -15,18 +15,71 @@ public struct Config: Codable, Equatable, Sendable {
         }
     }
 
+    public struct Calculator: Codable, Equatable, Sendable {
+        public static let inchFractions = [2, 4, 8, 16, 32, 64]
+
+        public enum Precision: Codable, Hashable, Sendable {
+            case automatic
+            case places(Int)
+            case full
+
+            public init(from decoder: any Decoder) throws {
+                let container = try decoder.singleValueContainer()
+                if let places = try? container.decode(Int.self) {
+                    guard (0...15).contains(places) else {
+                        throw DecodingError.dataCorruptedError(in: container, debugDescription: "Decimal places must be from 0 to 15.")
+                    }
+                    self = .places(places)
+                    return
+                }
+                let name = try container.decode(String.self)
+                guard name == "automatic" || name == "full" else {
+                    throw DecodingError.dataCorruptedError(in: container, debugDescription: "Use \"automatic\", \"full\" or a number of decimal places.")
+                }
+                self = name == "full" ? .full : .automatic
+            }
+
+            public func encode(to encoder: any Encoder) throws {
+                var container = encoder.singleValueContainer()
+                switch self {
+                case .automatic: try container.encode("automatic")
+                case .places(let places): try container.encode(places)
+                case .full: try container.encode("full")
+                }
+            }
+        }
+
+        public var autoConvertUnits = true
+        public var inchFraction = 16
+        public var precision = Precision.automatic
+
+        public init() {}
+
+        public init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            let defaults = Calculator()
+            autoConvertUnits = try container.decodeIfPresent(Bool.self, forKey: .autoConvertUnits) ?? defaults.autoConvertUnits
+            inchFraction = try container.decodeIfPresent(Int.self, forKey: .inchFraction) ?? defaults.inchFraction
+            guard Self.inchFractions.contains(inchFraction) else {
+                throw DecodingError.dataCorruptedError(forKey: .inchFraction, in: container, debugDescription: "Use one of \(Self.inchFractions.map(String.init).joined(separator: ", ")).")
+            }
+            precision = try container.decodeIfPresent(Precision.self, forKey: .precision) ?? defaults.precision
+        }
+    }
+
     public var hotkey = KeyCombination("ctrl+space")!
     public var launchAtLogin = false
     public var compact = false
     public var reopenTimeout: TimeInterval = 90
     public var fileSearch = FileSearch()
+    public var calculator = Calculator()
     public var historyIgnore: String?
     public var commands: [Command] = []
     public var aliases: [String: String] = [:]
     public var hiddenItems: [String] = []
 
     private enum CodingKeys: String, CodingKey {
-        case hotkey, launchAtLogin, compact, reopenTimeout, fileSearch, historyIgnore, commands, aliases, hiddenItems
+        case hotkey, launchAtLogin, compact, reopenTimeout, fileSearch, calculator, historyIgnore, commands, aliases, hiddenItems
     }
 
     public init() {}
@@ -43,6 +96,7 @@ public struct Config: Codable, Equatable, Sendable {
             reopenTimeout = try container.decodeIfPresent(TimeInterval.self, forKey: .reopenTimeout) ?? defaults.reopenTimeout
         }
         fileSearch = try container.decodeIfPresent(FileSearch.self, forKey: .fileSearch) ?? defaults.fileSearch
+        calculator = try container.decodeIfPresent(Calculator.self, forKey: .calculator) ?? defaults.calculator
         historyIgnore = try container.decodeIfPresent(String.self, forKey: .historyIgnore)
         if let historyIgnoreProblem {
             throw DecodingError.dataCorruptedError(forKey: .historyIgnore, in: container, debugDescription: historyIgnoreProblem)
@@ -67,6 +121,7 @@ public struct Config: Codable, Equatable, Sendable {
             try container.encode(reopenTimeout, forKey: .reopenTimeout)
         }
         try container.encode(fileSearch, forKey: .fileSearch)
+        try container.encode(calculator, forKey: .calculator)
         try container.encode(historyIgnore, forKey: .historyIgnore)
         try container.encode(commands, forKey: .commands)
         try container.encode(aliases, forKey: .aliases)

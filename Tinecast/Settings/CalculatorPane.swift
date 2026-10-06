@@ -1,7 +1,11 @@
 import SwiftUI
+import TinecastKit
 
 struct CalculatorPane: View {
-    let model: SettingsModel
+    private static let precisions: [(title: String, precision: Config.Calculator.Precision)] =
+        [("Automatic", .automatic)] + (0...10).map { ("\($0)", .places($0)) } + [("Full Precision", .full)]
+
+    @Bindable var model: SettingsModel
     @State private var isRefreshing = false
     @State private var refreshFailed = false
 
@@ -10,6 +14,32 @@ struct CalculatorPane: View {
         Form {
             Section {
                 PaneHeader(pane: .calculator)
+            }
+            Section("Units") {
+                Toggle(isOn: $model.config.calculator.autoConvertUnits) {
+                    Text(SettingRow.autoConvertUnits.label)
+                    Text("Shows 6 inch in centimeters without typing “in cm”.")
+                }
+                .modifier(SearchAnchor(id: SettingRow.autoConvertUnits.rawValue))
+                Picker(SettingRow.inchFractions.label, selection: $model.config.calculator.inchFraction) {
+                    ForEach(Config.Calculator.inchFractions, id: \.self) { denominator in
+                        Text("1/\(denominator)").tag(denominator)
+                    }
+                }
+                .modifier(SearchAnchor(id: SettingRow.inchFractions.rawValue))
+                Picker(selection: $model.config.calculator.precision) {
+                    ForEach(Self.precisions, id: \.precision) { option in
+                        Text(option.title).tag(option.precision)
+                    }
+                    if !Self.precisions.contains(where: { $0.precision == model.config.calculator.precision }),
+                       case .places(let places) = model.config.calculator.precision {
+                        Text("\(places)").tag(model.config.calculator.precision)
+                    }
+                } label: {
+                    Text(SettingRow.decimalPlaces.label)
+                    Text("Currency always shows two.")
+                }
+                .modifier(SearchAnchor(id: SettingRow.decimalPlaces.rawValue))
             }
             Section("Exchange Rates") {
                 LabeledContent(SettingRow.rateSource.label, value: "European Central Bank")
@@ -41,6 +71,7 @@ struct CalculatorPane: View {
             }
         }
         .formStyle(.grouped)
+        .toggleStyle(.switch)
     }
 
     private func refresh() {

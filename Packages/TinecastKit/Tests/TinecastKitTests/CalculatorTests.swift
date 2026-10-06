@@ -359,3 +359,67 @@ private func result(_ query: String, rates: ExchangeRates? = rates, local: Strin
     #expect(exact?.note == "= 0.5 in")
     #expect(calculate("1 km", rates: rates, localCurrency: "SEK", locale: english)?.decimal == nil)
 }
+
+@Test func mixedLengthsAddUp() {
+    #expect(result("5 ft 10 in") == "1.778 m")
+    #expect(result("5'10\"") == "1.778 m")
+    #expect(result("5′ 10″ to cm") == "177.8 cm")
+    #expect(result("1 m 50 cm") == "4 ft 11 1/16 in")
+    #expect(result("5 ft 10 in + 2 in to ft in") == "6 ft")
+    #expect(result("5 km 3 kg") == nil)
+}
+
+@Test func fractionsReadAsAmounts() {
+    #expect(result("3/8 in") == "0.9525 cm")
+    #expect(result("2 1/2 in") == "6.35 cm")
+    #expect(result("5 ft 10 1/2 in to cm") == "179.07 cm")
+    #expect(result("2 1/2 + 1") == "3.5")
+    #expect(result("3/8") == "0.375")
+    #expect(result("2 1/2") == nil)
+}
+
+@Test func usCupsAreSeparateFromMetricCups() {
+    #expect(result("1 uscup") == "236.5882365 mL")
+    #expect(result("1 l to uscups") == "4.226752838 US cup")
+}
+
+@Test func settingsShapeTheResult() {
+    func calculation(_ query: String, _ settings: Config.Calculator) -> Calculation? {
+        calculate(query, rates: rates, localCurrency: "SEK", locale: english, settings: settings)
+    }
+    var settings = Config.Calculator()
+    settings.autoConvertUnits = false
+    #expect(calculation("6 inch", settings) == nil)
+    #expect(calculation("6 inch to cm", settings)?.result.text == "15.24 cm")
+    #expect(calculation("100 usd", settings)?.result.text == "1,000.00 SEK")
+
+    settings = Config.Calculator()
+    settings.inchFraction = 8
+    #expect(calculation("180 cm", settings)?.result.text == "5 ft 10 7/8 in")
+    #expect(calculation("1 cm", settings)?.result.text == "3/8 in")
+    #expect(calculation("1 cm", settings)?.note == "= 0.3937007874 in · nearest 1/8")
+
+    settings = Config.Calculator()
+    settings.precision = .places(4)
+    #expect(calculation("1 / 3", settings)?.result.text == "0.3333")
+    #expect(calculation("180 cm", settings)?.note == "= 70.8661 in · nearest 1/16")
+    #expect(calculation("180 cm", settings)?.decimal == "70.8661")
+    #expect(calculation("10 usd to sek", settings)?.result.text == "100.00 SEK")
+
+    settings.precision = .full
+    #expect(calculation("1 / 3", settings)?.result.text == "0.333333333333333")
+    #expect(calculation("0.1 + 0.2", settings)?.result.text == "0.3")
+    #expect(calculation("0.1 * 3", settings)?.result.text == "0.3")
+    #expect(calculation("1.1 * 1.1", settings)?.result.text == "1.21")
+    #expect(calculation("sin(pi)", settings)?.result.text == "0")
+    #expect(calculation("1234567.891 * 1", settings)?.result.text == "1,234,567.891")
+    #expect(calculation("1234567.891 * 1", settings)?.raw == "1234567.891")
+    #expect(calculation("10^20", settings)?.result.text == "100,000,000,000,000,000,000")
+    #expect(calculation("180 cm", settings)?.decimal == "70.8661417322835")
+
+    for places in 0...10 {
+        settings.precision = .places(places)
+        #expect(calculation("0.1 + 0.2", settings)?.result.text == (places == 0 ? "0" : "0.3"))
+        #expect(calculation("1.1 * 1.1", settings)?.result.text == (places == 0 ? "1" : places == 1 ? "1.2" : "1.21"))
+    }
+}
