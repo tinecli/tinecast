@@ -6,6 +6,9 @@ struct ApplicationsSettings: View {
     @State private var scope = ItemScope.all
     @Environment(\.searchReveal) private var reveal
     @State private var rows: [ItemRowValue] = []
+    @State private var isRepairing = false
+    @State private var repairStatus: String?
+    @State private var repairFailed = false
 
     var body: some View {
         ScrollView {
@@ -13,6 +16,25 @@ struct ApplicationsSettings: View {
                 SettingsCard {
                     PaneHeader(pane: .applications)
                     FilterBar(prompt: "Filter Applications", text: $filter, scope: $scope)
+                }
+                SettingsCard {
+                    HStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Missing an App?")
+                            Text(repairStatus ?? "Apps Spotlight hasn’t indexed still appear, but without recent use. Repair adds them to the index.")
+                                .font(.callout)
+                                .foregroundStyle(repairFailed ? .red : .secondary)
+                        }
+                        Spacer()
+                        if isRepairing {
+                            ProgressView()
+                                .controlSize(.small)
+                                .accessibilityLabel("Repairing")
+                        }
+                        Button(SettingRow.repairAppIndex.label, action: repair)
+                            .disabled(isRepairing)
+                    }
+                    .modifier(SearchAnchor(id: SettingRow.repairAppIndex.rawValue))
                 }
                 if rows.isEmpty {
                     emptyResult
@@ -38,6 +60,21 @@ struct ApplicationsSettings: View {
         .onChange(of: model.applications, updateRows)
         .onChange(of: model.config.aliases, updateRows)
         .onChange(of: model.config.hiddenItems, updateRows)
+    }
+
+    private func repair() {
+        isRepairing = true
+        Task {
+            do {
+                let count = try await model.repairAppIndex()
+                repairStatus = count == 0 ? "Every app is already indexed." : "Added \(count) \(count == 1 ? "app" : "apps") to the Spotlight index."
+                repairFailed = false
+            } catch {
+                repairStatus = error.localizedDescription
+                repairFailed = true
+            }
+            isRepairing = false
+        }
     }
 
     private func applyRevealFilter() {

@@ -1,6 +1,7 @@
 enum SettingRow: String, CaseIterable {
     case hotkey, openAtLogin, clearSearchAfter, compactBar, version, checkForUpdates, settingsFile
     case accessibility, systemEventsAutomation, finderAutomation, loginItem
+    case repairAppIndex
     case addCommand
     case searchIn, exclude
     case autoConvertUnits, inchFractions, decimalPlaces, rateSource, ratesFrom, lastUpdated, refreshRates
@@ -23,6 +24,7 @@ enum SettingRow: String, CaseIterable {
         case .systemEventsAutomation: (.permissions, "Automation: System Events", ["Privacy", "Restart", "Shut Down", "Log Out", "Dark Mode"])
         case .finderAutomation: (.permissions, "Automation: Finder", ["Privacy", "Trash", "Eject"])
         case .loginItem: (.permissions, "Open at Login", ["Login Items"])
+        case .repairAppIndex: (.applications, "Repair App Index", ["Spotlight", "Missing Apps", "Reindex", "mdimport"])
         case .addCommand: (.commands, "Add Command…", ["New Command"])
         case .searchIn: (.files, "Search In", ["Folders", "File Search"])
         case .exclude: (.files, "Exclude", ["Folders", "Ignore"])
