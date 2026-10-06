@@ -15,7 +15,8 @@ public struct Calculation: Equatable, Sendable {
     public let input: Side
     public let result: Side
     public let raw: String
-    public let rateNote: String?
+    public let decimal: String?
+    public let note: String?
 }
 
 public func calculate(_ query: String, rates: ExchangeRates?, localCurrency: String?, locale: Locale) -> Calculation? {
@@ -31,6 +32,8 @@ public func calculate(_ query: String, rates: ExchangeRates?, localCurrency: Str
         .currency(local)
     } else if case .money = value {
         .currency(local == "EUR" ? "USD" : "EUR")
+    } else if case .measurement(let measurement) = value {
+        implicitTargets[ObjectIdentifier(measurement.unit)].map { .unit($0) }
     } else {
         nil
     }
@@ -39,13 +42,17 @@ public func calculate(_ query: String, rates: ExchangeRates?, localCurrency: Str
           result.magnitude.isFinite
     else { return nil }
     let (display, raw) = format(result, locale: locale)
+    let fraction = fractionalInches(result, locale: locale)
+    let decimal = fraction.map { format(.measurement(Measurement(value: $0.inches, unit: UnitLength.inches)), locale: locale) }
+    let isRounded = fraction.map { abs($0.inches * 16 - ($0.inches * 16).rounded()) > 1e-9 } ?? false
     let suffix = conversion.map { " \($0.keyword) \($0.target.name)" } ?? implicitTarget.map { " in \($0.name)" } ?? ""
     return Calculation(
         expression: operand.text + suffix,
         input: Calculation.Side(text: operand.text, name: operand.isAmount ? name(of: value, locale: locale) : "Expression"),
-        result: Calculation.Side(text: display, name: name(of: result, locale: locale)),
-        raw: raw,
-        rateNote: rates.flatMap { rateNote(for: result, from: parser.currencies, rates: allRates, date: $0.date, locale: locale) }
+        result: Calculation.Side(text: fraction?.text ?? display, name: name(of: result, locale: locale)),
+        raw: fraction?.text ?? raw,
+        decimal: decimal?.raw,
+        note: decimal.map { "= \($0.display)" + (isRounded ? " · nearest 1/16" : "") } ?? rates.flatMap { rateNote(for: result, from: parser.currencies, rates: allRates, date: $0.date, locale: locale) }
     )
 }
 
@@ -200,7 +207,7 @@ private struct Parser {
     mutating func query() throws(CalculationError) -> (Operand, (keyword: String, target: Target)?) {
         let operand = try expression()
         guard position < tokens.count else { return (operand, nil) }
-        guard isConversion(at: position), case .word(let keyword) = tokens[position], let target = target(at: position + 1) else { throw CalculationError() }
+        guard isConversion(at: position), case .word(let keyword) = tokens[position], let target = conversionTarget(at: position + 1) else { throw CalculationError() }
         isBareLiteral = false
         return (operand, (keyword, target))
     }
@@ -217,8 +224,18 @@ private struct Parser {
     }
 
     private func isConversion(at index: Int) -> Bool {
-        guard index + 2 == tokens.count, case .word(let keyword) = tokens[index] else { return false }
-        return conversionKeywords.contains(keyword) && target(at: index + 1) != nil
+        guard case .word(let keyword) = tokens[index] else { return false }
+        return conversionKeywords.contains(keyword) && conversionTarget(at: index + 1) != nil
+    }
+
+    private func conversionTarget(at index: Int) -> Target? {
+        if index + 1 == tokens.count { return target(at: index) }
+        let words = tokens.dropFirst(index).compactMap { token -> String? in
+            guard case .word(let word) = token else { return nil }
+            return word
+        }
+        guard index < tokens.count, words.count == tokens.count - index else { return nil }
+        return units[words.joined(separator: " ")].map { .unit($0) }
     }
 
     private func target(at index: Int) -> Target? {
@@ -404,6 +421,25 @@ private func format(_ quantity: Quantity, locale: Locale) -> (display: String, r
     let display = formatter.string(from: value as NSNumber) ?? ""
     formatter.usesGroupingSeparator = false
     return (display + suffix, formatter.string(from: value as NSNumber) ?? "")
+}
+
+private func fractionalInches(_ quantity: Quantity, locale: Locale) -> (text: String, inches: Double)? {
+    guard case .measurement(let measurement) = quantity else { return nil }
+    let isFeetAndInches = measurement.unit === feetAndInches
+    guard isFeetAndInches || measurement.unit === units["in"], abs(measurement.value) < 1e12 else { return nil }
+    let inches = measurement.converted(to: UnitLength.inches).value
+    let formatter = NumberFormatter()
+    formatter.locale = locale
+    formatter.numberStyle = .decimal
+    let sixteenths = Int((abs(inches) * 16).rounded())
+    let feet = isFeetAndInches ? sixteenths / 192 : 0
+    let whole = sixteenths / 16 - feet * 12
+    let numerator = sixteenths % 16
+    let fraction = numerator == 0 ? nil : "\(numerator >> numerator.trailingZeroBitCount)/\(16 >> numerator.trailingZeroBitCount)"
+    let inchesText = [whole == 0 ? nil : formatter.string(from: whole as NSNumber), fraction].compactMap(\.self).joined(separator: " ")
+    let parts = [feet == 0 ? nil : "\(formatter.string(from: feet as NSNumber) ?? "") ft", inchesText.isEmpty ? nil : "\(inchesText) in"].compactMap(\.self)
+    let sign = inches < 0 && sixteenths > 0 ? formatter.minusSign ?? "-" : ""
+    return (sign + (parts.isEmpty ? "0 in" : parts.joined(separator: " ")), inches)
 }
 
 private func name(of quantity: Quantity, locale: Locale) -> String {

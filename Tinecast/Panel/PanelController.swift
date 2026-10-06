@@ -131,6 +131,7 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
                 case .open: ("Open", "\r", [])
                 case .run: ("Run", "\r", [])
                 case .copyAnswer: ("Copy Answer", "\r", [])
+                case .copyDecimal: ("Copy Decimal", "", [])
                 case .copyExpression: ("Copy Expression", "", [])
                 case .showInFinder: ("Show in Finder", "\r", .command)
                 case .openWith: ("Open With", "", [])
@@ -159,6 +160,9 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
         switch action {
         case .open, .run, .copyAnswer:
             run(item)
+        case .copyDecimal:
+            guard case .copy(_, let decimal?) = item.action else { return }
+            run(Item(id: item.id, title: item.title, icon: item.icon, action: .copy(decimal)))
         case .copyExpression:
             run(Item(id: item.id, title: item.title, icon: item.icon, action: .copy(item.subtitle ?? "")))
         case .showInFinder:
@@ -234,7 +238,7 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
             switch item.action {
             case .open(let url):
                 NSWorkspace.shared.open(url, configuration: NSWorkspace.OpenConfiguration())
-            case .copy(let text):
+            case .copy(let text, _):
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(text, forType: .string)
                 previousApp?.activate()

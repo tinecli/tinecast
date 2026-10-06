@@ -14,6 +14,7 @@ let units: [String: Dimension] = {
         (UnitLength.yards, ["yd", "yard", "yards"]),
         (UnitLength.miles, ["mi", "mile", "miles"]),
         (UnitLength.nauticalMiles, ["nmi"]),
+        (feetAndInches, ["ft in", "ft and in", "feet inches", "feet and inches"]),
         (UnitMass.milligrams, ["mg", "milligram", "milligrams"]),
         (UnitMass.grams, ["g", "gram", "grams"]),
         (UnitMass.kilograms, ["kg", "kilo", "kilos", "kilogram", "kilograms"]),
@@ -77,3 +78,16 @@ let foundationTwins: [String: Dimension] = Dictionary(uniqueKeysWithValues: [
     UnitVolume.teaspoons, UnitVolume.tablespoons, UnitVolume.fluidOunces, UnitVolume.pints, UnitVolume.quarts, UnitVolume.gallons,
     UnitSpeed.kilometersPerHour, UnitSpeed.knots,
 ].map { ($0.symbol, $0) })
+
+let feetAndInches = UnitLength(symbol: "ft in", converter: UnitConverterLinear(coefficient: 0.0254))
+
+let implicitTargets: [ObjectIdentifier: Dimension] = Dictionary(uniqueKeysWithValues: [
+    ("mm", "in"), ("cm", "ft in"), ("m", "ft in"), ("km", "mi"),
+    ("in", "cm"), ("ft", "m"), ("yd", "m"), ("mi", "km"), ("nmi", "km"),
+    ("g", "oz"), ("kg", "lb"), ("oz", "g"), ("lb", "kg"), ("st", "kg"),
+    ("c", "f"), ("f", "c"), ("k", "c"),
+    ("ml", "floz"), ("cl", "floz"), ("dl", "cup"), ("l", "gal"),
+    ("tsp", "ml"), ("tbsp", "ml"), ("floz", "ml"), ("cup", "ml"), ("pt", "ml"), ("qt", "l"), ("gal", "l"),
+    ("m2", "ft2"), ("km2", "mi2"), ("ft2", "m2"), ("mi2", "km2"), ("ha", "ac"), ("ac", "ha"),
+    ("m/s", "km/h"), ("km/h", "mph"), ("mph", "km/h"), ("kn", "km/h"),
+].map { (ObjectIdentifier(units[$0]!), units[$1]!) })

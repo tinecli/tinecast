@@ -33,3 +33,9 @@ private let safari = Item(id: "/Applications/Safari.app", title: "Safari", icon:
 
     #expect(ItemAction.groups(for: answer) { _ in true } == [[.copyAnswer, .copyExpression]])
 }
+
+@Test func fractionalInchesOfferCopyDecimal() {
+    let answer = Item(id: "calculator", title: "1/2 in", subtitle: "12.7 mm in in", icon: .symbol("equal.circle"), action: .copy("1/2 in", decimal: "0.5"))
+
+    #expect(ItemAction.groups(for: answer) { _ in true } == [[.copyAnswer, .copyDecimal, .copyExpression]])
+}

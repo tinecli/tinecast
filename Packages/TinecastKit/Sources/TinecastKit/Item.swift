@@ -34,7 +34,7 @@ public enum Icon: Hashable, Sendable {
 
 public enum Action: Hashable, Sendable {
     case open(URL)
-    case copy(String)
+    case copy(String, decimal: String? = nil)
     case run(Command)
     case system(SystemAction)
 }
