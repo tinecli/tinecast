@@ -161,6 +161,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				EXECUTABLE_NAME = tinecast;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = TineCast;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Tinecast controls System Events and Finder to run system actions such as Restart, Toggle Dark Mode and Empty Trash.";
@@ -168,7 +169,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.7;
+				MARKETING_VERSION = 0.1.8;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.gustaf.tinecast;
 				PRODUCT_NAME = Tinecast;
 				SDKROOT = macosx;
@@ -313,6 +314,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				EXECUTABLE_NAME = tinecast;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = TineCast;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Tinecast controls System Events and Finder to run system actions such as Restart, Toggle Dark Mode and Empty Trash.";
@@ -320,7 +322,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.7;
+				MARKETING_VERSION = 0.1.8;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.gustaf.tinecast;
 				PRODUCT_NAME = Tinecast;
 				SDKROOT = macosx;
