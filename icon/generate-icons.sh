@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 SVG="${1:?usage: generate-icons.sh <icon.svg> [output.appiconset]}"
-OUT="${2:-../Tinecast/Assets.xcassets/AppIcon.appiconset}"
+OUT="${2:-../TineCast/Assets.xcassets/AppIcon.appiconset}"
 mkdir -p "$OUT"
 
 images=()

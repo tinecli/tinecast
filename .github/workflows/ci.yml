@@ -22,7 +22,7 @@ jobs:
       - run: brew install xcodegen
 
       - name: Swift tests
-        run: swift test --package-path Packages/TinecastKit
+        run: swift test --package-path Packages/TineCastKit
 
       - name: Package
         run: TINECAST_SIGN_ID="-" bash scripts/package.sh
@@ -30,6 +30,6 @@ jobs:
       - name: Verify bundle
         run: |
           set -euo pipefail
-          test -x dist/Tinecast.app/Contents/MacOS/tinecast
-          test -f dist/Tinecast.app/Contents/Resources/AppIcon.icns
-          test "$(lipo -archs dist/Tinecast.app/Contents/MacOS/tinecast)" = "arm64"
+          test -x dist/TineCast.app/Contents/MacOS/tinecast
+          test -f dist/TineCast.app/Contents/Resources/AppIcon.icns
+          test "$(lipo -archs dist/TineCast.app/Contents/MacOS/tinecast)" = "arm64"
