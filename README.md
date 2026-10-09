@@ -107,12 +107,12 @@ Build from source with [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 
 ```sh
 xcodegen generate
-xcodebuild -project Tinecast.xcodeproj -scheme tinecast build
-swift test --package-path Packages/TinecastKit   # tests
+xcodebuild -project TineCast.xcodeproj -scheme tinecast build
+swift test --package-path Packages/TineCastKit   # tests
 ```
 
-The app target is in `Tinecast/`, and the testable logic is in the
-`Packages/TinecastKit` package. Cutting a release:
+The app target is in `TineCast/`, and the testable logic is in the
+`Packages/TineCastKit` package. Cutting a release:
 [docs/RELEASING.md](docs/RELEASING.md).
 
 ## License

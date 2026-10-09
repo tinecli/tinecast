@@ -89,7 +89,7 @@ open a URL, run a process, run AppleScript, call a system API.
 - Swift only:
   - xcodegen `project.yml` with synced folders
   - an app target (macOS 26+, Swift 6, main-actor default isolation)
-  - a `TinecastKit` logic package with Swift Testing tests
+  - a `TineCastKit` logic package with Swift Testing tests
 
 ### Left for v0
 

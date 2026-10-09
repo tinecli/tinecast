@@ -22,15 +22,15 @@ notarize() {
 }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$ROOT/dist"
-APP="$DIST/Tinecast.app"
+APP="$DIST/TineCast.app"
 DERIVED="$ROOT/.build/release"
-VERSION="${TINECAST_VERSION:-0.1.8}"
+VERSION="${TINECAST_VERSION:-0.1.9}"
 BUILD="${TINECAST_BUILD:-1}"
 SIGN_ID="${TINECAST_SIGN_ID:-Developer ID Application: Gustaf Eriksson (82K3YC8HVF)}"
 
 echo "› release build (Apple Silicon)"
 (cd "$ROOT" && xcodegen generate --quiet)
-xcodebuild -project "$ROOT/Tinecast.xcodeproj" -scheme tinecast -configuration Release \
+xcodebuild -project "$ROOT/TineCast.xcodeproj" -scheme tinecast -configuration Release \
   -derivedDataPath "$DERIVED" ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
   MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD" CODE_SIGNING_ALLOWED=NO \
   -quiet build
@@ -38,7 +38,7 @@ xcodebuild -project "$ROOT/Tinecast.xcodeproj" -scheme tinecast -configuration R
 echo "› assemble $APP"
 rm -rf "$APP"
 mkdir -p "$DIST"
-ditto "$DERIVED/Build/Products/Release/Tinecast.app" "$APP"
+ditto "$DERIVED/Build/Products/Release/TineCast.app" "$APP"
 
 if [ "$SIGN_ID" = "-" ]; then
   echo "› ad-hoc sign + hardened runtime (unsigned distribution)"
@@ -56,9 +56,9 @@ echo "› dmg"
 DMG="$DIST/tinecast-${VERSION}.dmg"
 rm -f "$DMG"
 STAGE="$(mktemp -d)"
-cp -R "$APP" "$STAGE/Tinecast.app"
+cp -R "$APP" "$STAGE/TineCast.app"
 ln -s /Applications "$STAGE/Applications"
-hdiutil create -volname "Tinecast ${VERSION}" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
+hdiutil create -volname "TineCast ${VERSION}" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
 rm -rf "$STAGE"
 
 notarize "$DMG"
