@@ -67,8 +67,14 @@ struct WelcomeView: View {
         .toolbar(removing: .title)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .windowMinimizeBehavior(.disabled)
-        .onAppear { NSApp.activate() }
-        .onDisappear { UserDefaults.standard.set(true, forKey: Self.completedKey) }
+        .onAppear {
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate()
+        }
+        .onDisappear {
+            UserDefaults.standard.set(true, forKey: Self.completedKey)
+            hideDockIcon(unlessOpen: "settings")
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             symbolicHotKeys = UserDefaults(suiteName: "com.apple.symbolichotkeys")?.dictionary(forKey: "AppleSymbolicHotKeys") ?? [:]
         }
