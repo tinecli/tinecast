@@ -50,6 +50,11 @@ struct SettingsView: View {
             model.requestedReveal = nil
         }
         .background(TitlebarSeparatorRemover())
+        .onAppear {
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate()
+        }
+        .onDisappear { hideDockIcon(unlessOpen: "welcome") }
     }
 
     private static var initialPane: Pane {
