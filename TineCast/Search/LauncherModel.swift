@@ -10,6 +10,7 @@ struct ResultSection {
 @Observable
 final class LauncherModel {
     private static let recentLimit = 5
+    private static let queryLimit = 500
 
     var query = "" {
         didSet {
@@ -81,9 +82,10 @@ final class LauncherModel {
     }
 
     func edit(_ text: String) {
-        guard text != query else { return }
+        let capped = String(text.prefix(Self.queryLimit))
+        guard capped != query else { return }
         navigator.reset()
-        query = text
+        query = capped
     }
 
     func moveUp() {
