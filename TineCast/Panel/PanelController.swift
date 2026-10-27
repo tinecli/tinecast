@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import QuartzCore
 import SwiftUI
 import TineCastKit
@@ -54,6 +55,7 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
         panel.setContentSize(LauncherView.windowSize)
         panel.delegate = self
         panel.handleKeyEquivalent = { [weak self] event in self?.handleKeyEquivalent(event) ?? false }
+        panel.handleKeyDown = { [weak self] event in self?.handleKeyDown(event) ?? false }
         moreMenu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",").target = self
         moreMenu.addItem(.separator())
         moreMenu.addItem(withTitle: "Quit TineCast", action: #selector(NSApplication.terminate), keyEquivalent: "q").target = NSApp
@@ -122,6 +124,16 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
         if moreMenu.performKeyEquivalent(with: event) { return true }
         guard let item = model.selectedItem else { return false }
         return actionMenu(for: item).performKeyEquivalent(with: event)
+    }
+
+    private func handleKeyDown(_ event: NSEvent) -> Bool {
+        guard event.keyCode == UInt16(kVK_Delete),
+              event.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty,
+              model.drilledApp != nil,
+              model.query.isEmpty
+        else { return false }
+        withAnimation(.launcher) { model.leaveWindows() }
+        return true
     }
 
     private func actionMenu(for item: Item) -> NSMenu {

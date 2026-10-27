@@ -12,6 +12,7 @@ struct ResultsList: View {
     let model: LauncherModel
     let contentHeight: CGFloat
     let run: (Item) -> Void
+    let isRunning: (URL) -> Bool
     let actionBar: ActionBar
 
     var body: some View {
@@ -68,16 +69,17 @@ struct ResultsList: View {
         let item = model.results[index]
         let isSelected = index == model.selectedIndex
         let calculation: Calculation? = if case .copy = item.action { model.calculation } else { nil }
+        let running = if case .open(let url) = item.action { isRunning(url) } else { false }
         return Button { run(item) } label: {
             if let calculation {
                 CalculatorCard(calculation: calculation, isSelected: isSelected)
             } else {
-                ResultRow(item: item, alias: model.config.aliases[item.id], isSelected: isSelected)
+                ResultRow(item: item, alias: model.config.aliases[item.id], isSelected: isSelected, isRunning: running)
             }
         }
         .buttonStyle(.plain)
         .frame(height: calculation == nil ? Self.rowHeight : CalculatorCard.height)
-        .accessibilityLabel(item.subtitle.map { "\(item.title), \($0)" } ?? item.title)
+        .accessibilityLabel([item.title, item.subtitle, running ? "running" : nil].compactMap { $0 }.joined(separator: ", "))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
