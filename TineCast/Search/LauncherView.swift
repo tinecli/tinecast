@@ -152,11 +152,6 @@ struct LauncherView: View {
                 model.moveDown()
                 return .handled
             }
-            .onKeyPress(.tab) {
-                guard let item = model.selectedItem, case .open(let url) = item.action, isRunning(url) else { return .handled }
-                showWindows(item)
-                return .handled
-            }
             .onKeyPress(.rightArrow) {
                 guard let item = model.selectedItem,
                       case .open(let url) = item.action,

@@ -294,7 +294,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.13;
+				MARKETING_VERSION = 0.1.14;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.gustaf.tinecast;
 				PRODUCT_NAME = TineCast;
 				SDKROOT = macosx;
@@ -322,7 +322,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.13;
+				MARKETING_VERSION = 0.1.14;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.gustaf.tinecast;
 				PRODUCT_NAME = TineCast;
 				SDKROOT = macosx;

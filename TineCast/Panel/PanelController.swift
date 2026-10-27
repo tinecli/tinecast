@@ -127,8 +127,15 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
     }
 
     private func handleKeyDown(_ event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
+        if event.keyCode == UInt16(kVK_Tab), modifiers.isDisjoint(with: [.command, .option, .control]) {
+            if modifiers.isEmpty, let item = model.selectedItem, case .open(let url) = item.action, isRunning(url) {
+                showWindows(of: item)
+            }
+            return true
+        }
         guard event.keyCode == UInt16(kVK_Delete),
-              event.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty,
+              modifiers.isEmpty,
               model.drilledApp != nil,
               model.query.isEmpty
         else { return false }
