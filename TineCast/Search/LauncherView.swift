@@ -32,6 +32,8 @@ struct LauncherView: View {
     let model: LauncherModel
     let run: (Item) -> Void
     let reveal: (Item) -> Void
+    let isRunning: (URL) -> Bool
+    let showWindows: (Item) -> Void
     let cancel: () -> Void
     let showMoreMenu: (NSView) -> Void
     let actionsAnchor: NSView
@@ -45,7 +47,8 @@ struct LauncherView: View {
     private var resultsHeight: CGFloat {
         if !model.config.compact { return ResultsList.maximumContentHeight }
         let card = model.calculation == nil ? 0 : CalculatorCard.height - ResultsList.rowHeight
-        let content = CGFloat(model.results.count) * ResultsList.rowHeight + card + CGFloat(model.sections.count) * ResultsList.headerHeight
+        let rows = model.results.count + (model.emptyMessage == nil ? 0 : 1)
+        let content = CGFloat(rows) * ResultsList.rowHeight + card + CGFloat(model.sections.count) * ResultsList.headerHeight
         return min(content, ResultsList.maximumContentHeight)
     }
 
@@ -61,7 +64,7 @@ struct LauncherView: View {
                                 model: model,
                                 contentHeight: resultsHeight,
                                 run: run,
-                                actionBar: ActionBar(item: model.selectedItem, run: run, reveal: reveal, showMoreMenu: showMoreMenu, actionsAnchor: actionsAnchor, showActions: showActions)
+                                actionBar: ActionBar(item: model.selectedItem, run: run, reveal: reveal, isRunning: isRunning, showWindows: showWindows, showMoreMenu: showMoreMenu, actionsAnchor: actionsAnchor, showActions: showActions)
                             )
                         }
                     }
@@ -88,6 +91,8 @@ struct LauncherView: View {
     private func escape() {
         if !model.query.isEmpty {
             model.edit("")
+        } else if model.drilledApp != nil {
+            withAnimation(.launcher) { model.leaveWindows() }
         } else {
             cancel()
         }
@@ -103,15 +108,31 @@ struct LauncherView: View {
     }()
 
     private var searchBar: some View {
-        HStack(spacing: ResultRow.iconSpacing) {
+        let prompt = model.drilledApp == nil ? "Search" : "Search Windows"
+        return HStack(spacing: ResultRow.iconSpacing) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.55) : Color.black.opacity(0.5))
                 .frame(width: ResultRow.iconSize)
                 .accessibilityHidden(true)
+            if let app = model.drilledApp {
+                HStack(spacing: 6) {
+                    ItemIcon(icon: app.icon)
+                        .frame(width: 16, height: 16)
+                        .accessibilityHidden(true)
+                    Text(app.title)
+                        .lineLimit(1)
+                }
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background((colorScheme == .dark ? Color.white : .black).opacity(0.08), in: .rect(cornerRadius: 5, style: .continuous))
+                .fixedSize()
+            }
             TextField(
-                "Search",
+                prompt,
                 text: Binding(get: { model.query }, set: { model.edit($0) }),
-                prompt: Text("Search").foregroundStyle(.secondary)
+                prompt: Text(prompt).foregroundStyle(.secondary)
             )
             .textFieldStyle(.plain)
             .font(Self.searchFont)
@@ -119,7 +140,7 @@ struct LauncherView: View {
             .focused($isSearchFocused)
             .onAppear { isSearchFocused = true }
             .onSubmit {
-                guard let item = model.selectedItem else { return }
+                guard let item = model.selectedItem ?? model.drilledApp else { return }
                 run(item)
             }
             .onKeyPress(.upArrow) {
@@ -128,6 +149,26 @@ struct LauncherView: View {
             }
             .onKeyPress(.downArrow) {
                 model.moveDown()
+                return .handled
+            }
+            .onKeyPress(.tab) {
+                guard let item = model.selectedItem, case .open(let url) = item.action, isRunning(url) else { return .handled }
+                showWindows(item)
+                return .handled
+            }
+            .onKeyPress(.rightArrow) {
+                guard let item = model.selectedItem,
+                      case .open(let url) = item.action,
+                      isRunning(url),
+                      let editor = NSApp.keyWindow?.firstResponder as? NSTextView,
+                      editor.selectedRange() == NSRange(location: (editor.string as NSString).length, length: 0)
+                else { return .ignored }
+                showWindows(item)
+                return .handled
+            }
+            .onKeyPress(.delete) {
+                guard model.drilledApp != nil, model.query.isEmpty else { return .ignored }
+                withAnimation(.launcher) { model.leaveWindows() }
                 return .handled
             }
             .onExitCommand(perform: escape)

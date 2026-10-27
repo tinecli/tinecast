@@ -9,6 +9,8 @@ struct ActionBar: View {
     let item: Item?
     let run: (Item) -> Void
     let reveal: (Item) -> Void
+    let isRunning: (URL) -> Bool
+    let showWindows: (Item) -> Void
     let showMoreMenu: (NSView) -> Void
     let actionsAnchor: NSView
     let showActions: () -> Void
@@ -35,6 +37,12 @@ struct ActionBar: View {
                     Button { run(item) } label: {
                         ShortcutLabel(title: openTitle(for: item), keys: ["↵"])
                             .fontWeight(.semibold)
+                    }
+                    if case .open(let url) = item.action, isRunning(url) {
+                        Button { showWindows(item) } label: {
+                            ShortcutLabel(title: "Windows", keys: ["⇥"])
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     if item.kind == "File" {
                         Button { reveal(item) } label: {
@@ -66,6 +74,8 @@ struct ActionBar: View {
             "Copy Answer"
         case .run, .system:
             "Run"
+        case .window:
+            "Switch to Window"
         }
     }
 }
@@ -79,7 +89,7 @@ private struct MenuAnchor: NSViewRepresentable {
 }
 
 private struct ShortcutLabel: View {
-    private static let symbols = ["↵": "return", "⌘": "command", "⇧": "shift", "⌥": "option", "⌃": "control"]
+    private static let symbols = ["↵": "return", "⇥": "arrow.right.to.line", "⌘": "command", "⇧": "shift", "⌥": "option", "⌃": "control"]
 
     let title: String
     let keys: [String]

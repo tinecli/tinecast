@@ -4,11 +4,11 @@ import TineCastKit
 
 private let safari = Item(id: "/Applications/Safari.app", title: "Safari", icon: .symbol("safari"), action: .open(URL(filePath: "/Applications/Safari.app")))
 
-@Test func runningApplicationsOfferQuit() {
-    #expect(ItemAction.groups(for: safari) { _ in true } == [[.open, .showInFinder, .copyPath], [.quitApp], [.setAlias, .hideFromSearch]])
+@Test func runningApplicationsOfferWindowsAndQuit() {
+    #expect(ItemAction.groups(for: safari) { _ in true } == [[.open, .showInFinder, .copyPath], [.showWindows], [.quitApp], [.setAlias, .hideFromSearch]])
 }
 
-@Test func applicationsThatArentRunningOfferNoQuit() {
+@Test func applicationsThatArentRunningOfferNoWindowsOrQuit() {
     #expect(ItemAction.groups(for: safari) { _ in false } == [[.open, .showInFinder, .copyPath], [.setAlias, .hideFromSearch]])
 }
 
@@ -38,4 +38,11 @@ private let safari = Item(id: "/Applications/Safari.app", title: "Safari", icon:
     let answer = Item(id: "calculator", title: "1/2 in", subtitle: "12.7 mm in in", icon: .symbol("equal.circle"), action: .copy("1/2 in", decimal: "0.5"))
 
     #expect(ItemAction.groups(for: answer) { _ in true } == [[.copyAnswer, .copyDecimal, .copyExpression]])
+}
+
+@Test func windowsOnlyOpen() {
+    let window = Item(id: "window:42:0", title: "Start Page", icon: .symbol("macwindow"), action: .window(pid: 42, index: 0, title: "Start Page"))
+
+    #expect(window.kind == "Window")
+    #expect(ItemAction.groups(for: window) { _ in true } == [[.open]])
 }
