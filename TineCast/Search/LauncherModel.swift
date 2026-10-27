@@ -54,6 +54,10 @@ final class LauncherModel {
     private(set) var sections: [ResultSection] = []
     private(set) var selectedIndex = 0
     private(set) var calculation: Calculation?
+    private(set) var drilledApp: Item?
+    private(set) var windowsNotice: String?
+    @ObservationIgnored private var windows: [Item] = []
+    @ObservationIgnored private var queryBeforeWindows = ""
     @ObservationIgnored private var searchable: [Item] = [] {
         didSet {
             rankedResults = rank(searchable, query: query, frecency: frecency, aliases: config.aliases)
@@ -77,8 +81,11 @@ final class LauncherModel {
         results.indices.contains(selectedIndex) ? results[selectedIndex] : nil
     }
 
-    var showsNoResults: Bool {
-        results.isEmpty && !isSearchingFiles && !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    var emptyMessage: String? {
+        guard results.isEmpty else { return nil }
+        let isBlank = query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if drilledApp != nil { return isBlank ? windowsNotice : "No Results" }
+        return isBlank || isSearchingFiles ? nil : "No Results"
     }
 
     func edit(_ text: String) {
@@ -93,7 +100,7 @@ final class LauncherModel {
             selectedIndex -= 1
             return
         }
-        guard let recalled = navigator.older(typed: query, in: history) else { return }
+        guard drilledApp == nil, let recalled = navigator.older(typed: query, in: history) else { return }
         query = recalled
     }
 
@@ -107,6 +114,7 @@ final class LauncherModel {
     }
 
     func record(_ item: Item) {
+        if case .window = item.action { return }
         guard !config.historyIgnores(query) else { return }
         history.record(query)
         if case .copy = item.action { return }
@@ -114,6 +122,7 @@ final class LauncherModel {
     }
 
     func present() {
+        leaveWindows()
         if let closedAt, Date.now.timeIntervalSince(closedAt) > config.reopenTimeout {
             query = ""
         }
@@ -126,7 +135,48 @@ final class LauncherModel {
         closedAt = .now
     }
 
+    func showWindows(of app: Item, notice: String?) {
+        queryBeforeWindows = query
+        navigator.reset()
+        drilledApp = app
+        windows = []
+        windowsNotice = notice
+        calculation = nil
+        query = ""
+        search()
+    }
+
+    func list(_ appWindows: [AppWindow], of app: Item) {
+        guard drilledApp == app, case .open(let url) = app.action else { return }
+        windowsNotice = appWindows.isEmpty ? "No windows on this Space" : nil
+        windows = appWindows.map { window in
+            Item(
+                id: "window:\(window.pid):\(window.index)",
+                title: window.title.isEmpty ? app.title : window.title,
+                subtitle: window.isMinimized ? "Minimized" : nil,
+                icon: .file(url),
+                action: .window(pid: window.pid, index: window.index, title: window.title)
+            )
+        }
+        updateResults()
+    }
+
+    func leaveWindows() {
+        guard let app = drilledApp else { return }
+        query = queryBeforeWindows
+        drilledApp = nil
+        windows = []
+        windowsNotice = nil
+        search()
+        selectedIndex = results.firstIndex(of: app) ?? 0
+    }
+
     private func search() {
+        guard drilledApp == nil else {
+            layOut(currentGroups)
+            selectedIndex = 0
+            return
+        }
         calculation = calculate(query, rates: exchangeRates, localCurrency: Locale.current.currency?.identifier, locale: .current, settings: config.calculator)
         if calculation != nil || exchangeRates == nil { refreshRates() }
         rankedResults = rank(searchable, query: query, frecency: frecency, aliases: config.aliases)
@@ -154,6 +204,9 @@ final class LauncherModel {
     }
 
     private var currentGroups: [(title: String, items: [Item])] {
+        if drilledApp != nil {
+            return [("Windows", query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? windows : rank(windows, query: query))]
+        }
         guard query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return [("Calculator", calculatorResults), ("Results", rankedResults), ("Files", fileResults.filter { !config.hiddenItems.contains($0.id) })]
         }

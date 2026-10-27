@@ -11,10 +11,14 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
     private let actionsAnchor = NSView()
     private let ratesProvider: RatesProvider
     private let systemActions = SystemActionRunner()
+    private let isRunning: (URL) -> Bool = { url in
+        NSWorkspace.shared.runningApplications.contains { $0.bundleURL?.standardizedFileURL.path == url.standardizedFileURL.path }
+    }
     private let historyFile: JSONFile<History>
     private let frecencyFile: JSONFile<Frecency>
     private var previousApp: NSRunningApplication?
     private var openSettingsWindow: OpenWindowAction?
+    private var hasPromptedForAccessibility = false
 
     init(folder: URL, settings: SettingsModel) {
         historyFile = JSONFile(url: folder.appending(path: "history.json"))
@@ -37,6 +41,8 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
             model: model,
             run: { [weak self] item in self?.run(item) },
             reveal: { [weak self] item in self?.reveal(item) },
+            isRunning: isRunning,
+            showWindows: { [weak self] item in self?.showWindows(of: item) },
             cancel: { [weak self] in self?.close() },
             showMoreMenu: { [weak self] anchor in self?.showMoreMenu(above: anchor) },
             actionsAnchor: actionsAnchor,
@@ -121,9 +127,7 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
     private func actionMenu(for item: Item) -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
-        let groups = ItemAction.groups(for: item) { url in
-            NSWorkspace.shared.runningApplications.contains { $0.bundleURL?.standardizedFileURL.path == url.standardizedFileURL.path }
-        }
+        let groups = ItemAction.groups(for: item, isRunning: isRunning)
         for (index, group) in groups.enumerated() {
             if index > 0 { menu.addItem(.separator()) }
             for action in group {
@@ -136,6 +140,7 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
                 case .showInFinder: ("Show in Finder", "\r", .command)
                 case .openWith: ("Open With", "", [])
                 case .copyPath: ("Copy Path", "C", .command)
+                case .showWindows: ("Show Windows", "", [])
                 case .quitApp: ("Quit \(item.title)", "", [])
                 case .moveToTrash: ("Move to Trash", "", [])
                 case .editInSettings: ("Edit in Settings…", "", [])
@@ -172,6 +177,8 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
         case .copyPath:
             guard case .open(let url) = item.action else { return }
             run(Item(id: item.id, title: item.title, icon: item.icon, action: .copy(url.path(percentEncoded: false))))
+        case .showWindows:
+            showWindows(of: item)
         case .quitApp:
             guard case .open(let url) = item.action else { return }
             hide()
@@ -189,7 +196,7 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
             let pane: Pane = switch item.action {
             case .run: .commands
             case .system: .systemActions
-            case .open, .copy: .applications
+            case .open, .copy, .window: .applications
             }
             settings.requestedReveal = SearchResult(pane: pane, title: item.title, icon: item.icon, anchor: item.id, filter: pane == .commands ? nil : "")
             openSettings()
@@ -254,7 +261,26 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
             case .system(let action):
                 previousApp?.activate()
                 systemActions.perform(action, frontmost: previousApp)
+            case .window(let pid, let index, let title):
+                raiseWindow(pid: pid, index: index, title: title)
+                NSRunningApplication(processIdentifier: pid)?.activate()
             }
+        }
+    }
+
+    private func showWindows(of item: Item) {
+        guard case .open(let url) = item.action,
+              let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleURL?.standardizedFileURL.path == url.standardizedFileURL.path })
+        else { return }
+        let prompts = !hasPromptedForAccessibility
+        hasPromptedForAccessibility = true
+        let isTrusted = AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": prompts] as CFDictionary)
+        withAnimation(.launcher) { model.showWindows(of: item, notice: isTrusted ? nil : "Allow Accessibility access to list windows") }
+        guard isTrusted else { return }
+        let pid = app.processIdentifier
+        Task { [model] in
+            let windows = await appWindows(of: pid)
+            withAnimation(.launcher) { model.list(windows, of: item) }
         }
     }
 

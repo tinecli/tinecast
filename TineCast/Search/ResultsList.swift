@@ -18,8 +18,8 @@ struct ResultsList: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    if model.showsNoResults {
-                        Text("No Results")
+                    if let message = model.emptyMessage {
+                        Text(message)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity)
                             .frame(height: Self.rowHeight)

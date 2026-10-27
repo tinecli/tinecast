@@ -23,6 +23,7 @@ public struct Item: Identifiable, Hashable, Sendable {
         case .copy: nil
         case .run: "Command"
         case .system: "System"
+        case .window: "Window"
         }
     }
 }
@@ -37,4 +38,5 @@ public enum Action: Hashable, Sendable {
     case copy(String, decimal: String? = nil)
     case run(Command)
     case system(SystemAction)
+    case window(pid: Int32, index: Int, title: String)
 }
