@@ -38,22 +38,26 @@ struct ActionBar: View {
                         ShortcutLabel(title: openTitle(for: item), keys: ["↵"])
                             .fontWeight(.semibold)
                     }
+                    .focusable(false)
                     if case .open(let url) = item.action, isRunning(url) {
                         Button { showWindows(item) } label: {
                             ShortcutLabel(title: "Windows", keys: ["⇥"])
                                 .foregroundStyle(.secondary)
                         }
+                        .focusable(false)
                     }
                     if item.kind == "File" {
                         Button { reveal(item) } label: {
                             ShortcutLabel(title: "Show in Finder", keys: ["⌘", "↵"])
                                 .foregroundStyle(.secondary)
                         }
+                        .focusable(false)
                     }
                     Button(action: showActions) {
                         ShortcutLabel(title: "Actions", keys: ["⌘", "K"])
                             .foregroundStyle(.secondary)
                     }
+                    .focusable(false)
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 12)

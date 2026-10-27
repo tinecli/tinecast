@@ -78,6 +78,7 @@ struct ResultsList: View {
             }
         }
         .buttonStyle(.plain)
+        .focusable(false)
         .frame(height: calculation == nil ? Self.rowHeight : CalculatorCard.height)
         .accessibilityLabel([item.title, item.subtitle, running ? "running" : nil].compactMap { $0 }.joined(separator: ", "))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
