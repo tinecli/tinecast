@@ -24,7 +24,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$ROOT/dist"
 APP="$DIST/TineCast.app"
 DERIVED="$ROOT/.build/release"
-VERSION="${TINECAST_VERSION:-0.1.14}"
+VERSION="${TINECAST_VERSION:-0.1.15}"
 BUILD="${TINECAST_BUILD:-1}"
 SIGN_ID="${TINECAST_SIGN_ID:-Developer ID Application: Gustaf Eriksson (82K3YC8HVF)}"
 

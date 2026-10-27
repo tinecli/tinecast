@@ -41,7 +41,7 @@ private let safari = Item(id: "/Applications/Safari.app", title: "Safari", icon:
 }
 
 @Test func windowsOnlyOpen() {
-    let window = Item(id: "window:42:0", title: "Start Page", icon: .symbol("macwindow"), action: .window(pid: 42, index: 0, title: "Start Page"))
+    let window = Item(id: "window:42:7", title: "Start Page", icon: .symbol("macwindow"), action: .window(pid: 42, windowID: 7))
 
     #expect(window.kind == "Window")
     #expect(ItemAction.groups(for: window) { _ in true } == [[.open]])

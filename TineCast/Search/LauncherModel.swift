@@ -148,14 +148,14 @@ final class LauncherModel {
 
     func list(_ appWindows: [AppWindow], of app: Item) {
         guard drilledApp == app, case .open(let url) = app.action else { return }
-        windowsNotice = appWindows.isEmpty ? "No windows on this Space" : nil
+        windowsNotice = appWindows.isEmpty ? (listsWindowsOnAllSpaces ? "No open windows" : "No windows on this Space") : nil
         windows = appWindows.map { window in
             Item(
-                id: "window:\(window.pid):\(window.index)",
+                id: "window:\(window.pid):\(window.windowID)",
                 title: window.title.isEmpty ? app.title : window.title,
-                subtitle: window.isMinimized ? "Minimized" : nil,
+                subtitle: window.isMinimized ? "Minimized" : window.isOnOtherSpace ? "Other Space" : nil,
                 icon: .file(url),
-                action: .window(pid: window.pid, index: window.index, title: window.title)
+                action: .window(pid: window.pid, windowID: window.windowID)
             )
         }
         updateResults()

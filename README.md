@@ -43,8 +43,7 @@ your Mac.
   from search.
 - **⌘K actions.** A menu of what the selected item can do, such as Show in Finder, Copy Path, Open
   With, Quit, Move to Trash, Edit in Settings, Set Alias and Hide from Search.
-- **Window switching.** Press ⇥ on a running app to pick one of its windows on
-  the current Space.
+- **Window switching.** Press ⇥ on a running app to pick one of its windows.
 - **Settings window** with a search field that finds any setting, app, action or
   command.
 - **Compact bar.** Optional: a slim search bar that expands as you type.

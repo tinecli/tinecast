@@ -280,9 +280,8 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
             case .system(let action):
                 previousApp?.activate()
                 systemActions.perform(action, frontmost: previousApp)
-            case .window(let pid, let index, let title):
-                raiseWindow(pid: pid, index: index, title: title)
-                NSRunningApplication(processIdentifier: pid)?.activate()
+            case .window(let pid, let windowID):
+                Task { await raiseWindow(pid: pid, windowID: windowID) }
             }
         }
     }

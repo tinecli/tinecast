@@ -38,5 +38,5 @@ public enum Action: Hashable, Sendable {
     case copy(String, decimal: String? = nil)
     case run(Command)
     case system(SystemAction)
-    case window(pid: Int32, index: Int, title: String)
+    case window(pid: Int32, windowID: UInt32)
 }
