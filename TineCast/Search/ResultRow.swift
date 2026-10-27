@@ -9,6 +9,7 @@ struct ResultRow: View {
     let item: Item
     let alias: String?
     let isSelected: Bool
+    let isRunning: Bool
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
@@ -18,6 +19,14 @@ struct ResultRow: View {
             ItemIcon(icon: item.icon)
                 .font(.title2)
                 .frame(width: Self.iconSize, height: Self.iconSize)
+                .overlay(alignment: .bottom) {
+                    if isRunning {
+                        Circle()
+                            .fill(.secondary)
+                            .frame(width: 4, height: 4)
+                            .offset(y: 6)
+                    }
+                }
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {

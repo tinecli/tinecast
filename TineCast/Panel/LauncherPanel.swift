@@ -2,6 +2,7 @@ import AppKit
 
 final class LauncherPanel: NSPanel {
     var handleKeyEquivalent: (NSEvent) -> Bool = { _ in false }
+    var handleKeyDown: (NSEvent) -> Bool = { _ in false }
 
     init() {
         super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
@@ -19,5 +20,10 @@ final class LauncherPanel: NSPanel {
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         handleKeyEquivalent(event) || super.performKeyEquivalent(with: event)
+    }
+
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .keyDown, handleKeyDown(event) { return }
+        super.sendEvent(event)
     }
 }

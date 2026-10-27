@@ -64,6 +64,7 @@ struct LauncherView: View {
                                 model: model,
                                 contentHeight: resultsHeight,
                                 run: run,
+                                isRunning: isRunning,
                                 actionBar: ActionBar(item: model.selectedItem, run: run, reveal: reveal, isRunning: isRunning, showWindows: showWindows, showMoreMenu: showMoreMenu, actionsAnchor: actionsAnchor, showActions: showActions)
                             )
                         }
@@ -164,11 +165,6 @@ struct LauncherView: View {
                       editor.selectedRange() == NSRange(location: (editor.string as NSString).length, length: 0)
                 else { return .ignored }
                 showWindows(item)
-                return .handled
-            }
-            .onKeyPress(.delete) {
-                guard model.drilledApp != nil, model.query.isEmpty else { return .ignored }
-                withAnimation(.launcher) { model.leaveWindows() }
                 return .handled
             }
             .onExitCommand(perform: escape)
