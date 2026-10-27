@@ -24,7 +24,7 @@ struct ResultRow: View {
                         Circle()
                             .fill(.secondary)
                             .frame(width: 4, height: 4)
-                            .offset(y: 6)
+                            .offset(y: 4)
                     }
                 }
                 .accessibilityHidden(true)
