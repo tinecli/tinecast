@@ -1,6 +1,6 @@
 import AppKit
 import ApplicationServices
-import Synchronization
+import os
 
 nonisolated struct AppWindow: Sendable {
     let pid: pid_t
@@ -41,14 +41,14 @@ nonisolated private let privateAPI: PrivateAPI? = {
     )
 }()
 
-nonisolated private let listedElements = Mutex<[CGWindowID: AXUIElement]>([:])
+nonisolated private let listedElements = OSAllocatedUnfairLock<[CGWindowID: AXUIElement]>(uncheckedState: [:])
 
 let listsWindowsOnAllSpaces = privateAPI != nil
 
 @concurrent
 func appWindows(of pid: pid_t) async -> [AppWindow] {
     let windows = standardWindows(of: pid)
-    listedElements.withLock { elements in
+    listedElements.withLockUnchecked { elements in
         elements = Dictionary(windows.map { ($0.window.windowID, $0.element) }) { first, _ in first }
     }
     return windows.map { $0.window }
@@ -56,7 +56,7 @@ func appWindows(of pid: pid_t) async -> [AppWindow] {
 
 @concurrent
 func raiseWindow(pid: pid_t, windowID: CGWindowID) async {
-    let listed = listedElements.withLock { $0[windowID] }.flatMap { element in
+    let listed = listedElements.withLockUnchecked { $0[windowID] }.flatMap { element in
         var elementPid = pid_t(0)
         let isAlive = AXUIElementGetPid(element, &elementPid) == .success && elementPid == pid && attribute(kAXRoleAttribute, of: element) != nil
         return isAlive ? element : nil
