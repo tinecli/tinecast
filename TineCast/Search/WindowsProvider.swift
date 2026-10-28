@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import Synchronization
 
 nonisolated struct AppWindow: Sendable {
     let pid: pid_t
@@ -40,24 +41,35 @@ nonisolated private let privateAPI: PrivateAPI? = {
     )
 }()
 
+nonisolated private let listedElements = Mutex<[CGWindowID: AXUIElement]>([:])
+
 let listsWindowsOnAllSpaces = privateAPI != nil
 
 @concurrent
 func appWindows(of pid: pid_t) async -> [AppWindow] {
-    standardWindows(of: pid).map { $0.window }
+    let windows = standardWindows(of: pid)
+    listedElements.withLock { elements in
+        elements = Dictionary(windows.map { ($0.window.windowID, $0.element) }) { first, _ in first }
+    }
+    return windows.map { $0.window }
 }
 
 @concurrent
 func raiseWindow(pid: pid_t, windowID: CGWindowID) async {
-    guard let match = standardWindows(of: pid).first(where: { $0.window.windowID == windowID }) else {
+    let listed = listedElements.withLock { $0[windowID] }.flatMap { element in
+        var elementPid = pid_t(0)
+        let isAlive = AXUIElementGetPid(element, &elementPid) == .success && elementPid == pid && attribute(kAXRoleAttribute, of: element) != nil
+        return isAlive ? element : nil
+    }
+    guard let element = listed ?? standardWindows(of: pid).first(where: { $0.window.windowID == windowID })?.element else {
         NSRunningApplication(processIdentifier: pid)?.activate()
         return
     }
-    if match.window.isMinimized {
-        AXUIElementSetAttributeValue(match.element, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+    if attribute(kAXMinimizedAttribute, of: element) as? Bool == true {
+        AXUIElementSetAttributeValue(element, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
     }
     guard let privateAPI else {
-        AXUIElementPerformAction(match.element, kAXRaiseAction as CFString)
+        AXUIElementPerformAction(element, kAXRaiseAction as CFString)
         NSRunningApplication(processIdentifier: pid)?.activate()
         return
     }
@@ -73,7 +85,7 @@ func raiseWindow(pid: pid_t, windowID: CGWindowID) async {
     withUnsafeBytes(of: CGPoint(x: 300_000, y: 300_000)) { event.replaceSubrange(0x20..<0x30, with: $0) }
     withUnsafeBytes(of: windowID) { event.replaceSubrange(0x3c..<0x40, with: $0) }
     _ = privateAPI.postEventRecord(&process, &event)
-    AXUIElementPerformAction(match.element, kAXRaiseAction as CFString)
+    AXUIElementPerformAction(element, kAXRaiseAction as CFString)
 }
 
 private nonisolated func standardWindows(of pid: pid_t) -> [(element: AXUIElement, window: AppWindow)] {
