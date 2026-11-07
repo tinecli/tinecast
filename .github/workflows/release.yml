@@ -16,9 +16,10 @@ jobs:
     name: Build & release
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Preflight, every release secret is set
         env:
@@ -105,16 +106,19 @@ jobs:
 
       - name: Compute sha256
         id: sha
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
-          echo "sha256=$(shasum -a 256 "dist/tinecast-${{ steps.ver.outputs.version }}.dmg" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(shasum -a 256 "dist/tinecast-$VERSION.dmg" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            "dist/tinecast-${{ steps.ver.outputs.version }}.dmg" \
-            --title "TineCast ${{ steps.ver.outputs.version }}" \
+            "dist/tinecast-$VERSION.dmg" \
+            --title "TineCast $VERSION" \
             --notes "Install: \`brew install --cask tinecli/tap/tinecast\`. Developer ID signed & notarized."
 
       - name: Bump Homebrew cask
