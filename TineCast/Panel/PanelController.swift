@@ -176,6 +176,12 @@ final class PanelController: NSObject, NSWindowDelegate, NSMenuDelegate {
                 menuItem.submenu?.delegate = self
             }
         }
+
+        let close = menu.addItem(withTitle: "Close", action: #selector(performMenuAction), keyEquivalent: "k")
+        close.target = self
+        close.isHidden = true
+        close.allowsKeyEquivalentWhenHidden = true
+
         return menu
     }
 

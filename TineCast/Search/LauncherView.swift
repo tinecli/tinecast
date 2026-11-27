@@ -84,8 +84,7 @@ struct LauncherView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onAppear { registerOpenSettings(openSettingsWindow) }
         .onChange(of: model.isPresented) { _, isPresented in
-            guard isPresented else { return }
-            isSearchFocused = true
+            isSearchFocused = isPresented
         }
     }
 
